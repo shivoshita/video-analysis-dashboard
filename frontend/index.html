@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Analysis Reports Styles */
+        .reports-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f8fafc;
+            min-height: calc(100vh - 60px);
+        }
+
+        .reports-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .reports-header h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            color: #1a202c;
+            margin: 0;
+        }
+
+        .reports-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .reports-actions .btn-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .reports-actions .btn-icon:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .reports-actions .btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .reports-actions .btn-primary:hover {
+            background: #059669;
+        }
+
+        .analysis-report-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .report-title {
+            background: white;
+            color: black;
+            padding: 1.5rem 2rem;
+        }
+
+        .report-title h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .report-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .report-section:last-child {
+            border-bottom: none;
+        }
+
+        .report-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .report-section h3 i {
+            color: #10b981;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .anomaly-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .anomaly-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .anomaly-time {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-family: 'Monaco', 'Courier New', monospace;
+            min-width: 140px;
+        }
+
+        .anomaly-description {
+            flex: 1;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .anomaly-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .anomaly-severity.high {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .anomaly-severity.medium {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .anomaly-severity.low {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .summary-content {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-content p {
+            margin: 0;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .reports-container {
+                padding: 1rem;
+            }
+
+            .reports-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .reports-actions {
+                justify-content: center;
+            }
+
+            .report-title, .report-section {
+                padding: 1rem 1.5rem;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .anomaly-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .anomaly-time {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item active" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" data-page="live">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Live Monitor</span>
+            </li>
+            <li class="nav-item" data-page="analysis">
+                <i class="fas fa-play-circle"></i>
+                <span>Video Analysis</span>
+            </li>
+            <li class="nav-item" data-page="chat">
+                <i class="fas fa-comments"></i>
+                <span>AI Chat</span>
+            </li>
+            <li class="nav-item" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Analysis Reports</span>
+            </li>
+            <li class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Page -->
+        <div class="page-content active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon accidents">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="accidentsCount">0</h3>
+                        <p>Incidents Today</p>
+                        <small class="stat-change positive">+5% from yesterday</small>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon cameras">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="camerasCount">24</h3>
+                        <p>Active Cameras</p>
+                        <small class="stat-change">/ 28 total</small>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon learning">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="learningCount">4,294</h3>
+                        <p>AI Scanned</p>
+                        <small class="stat-change positive">+12% efficiency</small>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon uptime">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>99.8%</h3>
+                        <p>System Uptime</p>
+                        <small class="stat-change positive">Last 30 days</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>Weekly Incidents</h3>
+                        <div class="card-actions">
+                            <button class="btn-icon">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="incidentsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <div class="card-header">
+                        <h3>Recent Activity</h3>
+                        <button class="btn-text" id="markAllRead">Mark all read</button>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <div class="activity-item">
+                            <div class="activity-icon accident">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>New incident detected:</strong> Crowd on camera M2</p>
+                                <small>2 minutes ago</small>
+                            </div>
+                            <div class="activity-status unread"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="camera-overview">
+                    <div class="card-header">
+                        <h3>Camera Overview</h3>
+                        <div class="camera-filters">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="production">Production</button>
+                            <button class="filter-btn" data-filter="warehouse">Warehouse</button>
+                            <button class="filter-btn" data-filter="security">Security</button>
+                        </div>
+                    </div>
+                    <div class="camera-grid" id="cameraGrid">
+                        <!-- Camera thumbnails will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Monitor Page -->
+        <div class="page-content" id="live">
+            <div class="live-controls">
+                <div class="control-group">
+                    <button class="btn-primary" id="startLiveBtn">
+                        <i class="fas fa-play"></i>
+                        Start Monitoring
+                    </button>
+                    <button class="btn-secondary" id="stopLiveBtn" disabled>
+                        <i class="fas fa-stop"></i>
+                        Stop Monitoring
+                    </button>
+                </div>
+                
+                <div class="control-group">
+                    <button class="btn-outline" id="analyzeLiveBtn" disabled>
+                        <i class="fas fa-search"></i>
+                        Analyze Feed
+                    </button>
+                    <button class="btn-outline" id="anomalyLiveBtn" disabled>
+                        <i class="fas fa-shield-alt"></i>
+                        Check Anomalies
+                    </button>
+                </div>
+            </div>
+
+            <div class="live-grid">
+                <div class="video-container">
+                    <div class="video-header">
+                        <h3>Live Camera Feed</h3>
+                        <div class="video-controls">
+                            <button class="btn-icon" id="refreshVideoBtn">
+                                <i class="fas fa-refresh"></i>
+                            </button>
+                            <button class="btn-icon">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="video-display" id="liveVideoDisplay">
+                        <div class="video-placeholder">
+                            <i class="fas fa-video-slash"></i>
+                            <p>No live feed active</p>
+                        </div>
+                    </div>
+                    <div class="video-status" id="videoStatus">
+                        <div class="status-item">
+                            <span>Status:</span>
+                            <span class="status-value" id="streamStatus">Offline</span>
+                        </div>
+                        <div class="status-item">
+                            <span>FPS:</span>
+                            <span class="status-value" id="streamFPS">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Quality:</span>
+                            <span class="status-value" id="streamQuality">N/A</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-container">
+                    <div class="reports-header">
+                        <h3>Live Reports</h3>
+                        <button class="btn-icon" id="refreshReportsBtn">
+                            <i class="fas fa-refresh"></i>
+                        </button>
+                    </div>
+                    <div class="reports-content" id="liveReports">
+                        <p>Live analysis reports will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Analysis Page -->
+        <div class="page-content" id="analysis">
+            <div class="upload-section">
+                <div class="upload-card">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="videoFileInput" accept="video/*" hidden>
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Upload Video File</h3>
+                            <p>Drag and drop your video here, or click to browse</p>
+                            <small>Supports MP4, AVI, MOV formats</small>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-actions">
+                        <button class="btn-primary" id="analyzeVideoBtn" disabled>
+                            <i class="fas fa-play"></i>
+                            Analyze Video
+                        </button>
+                        <button class="btn-secondary" id="detectAnomaliesBtn" disabled>
+                            <i class="fas fa-shield-alt"></i>
+                            Detect Anomalies
+                        </button>
+                    </div>
+                </div>
+
+                <div class="video-info" id="videoInfo" style="display: none;">
+                    <h4>Video Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span>Duration:</span>
+                            <span id="videoDuration">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Resolution:</span>
+                            <span id="videoResolution">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Size:</span>
+                            <span id="videoSize">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Format:</span>
+                            <span id="videoFormat">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analysis-results" style="display: none;">
+              <div class="video-player-container">
+                  <div class="video-header">
+                      <h3>Processed Video</h3>
+                  </div>
+                  <video class="video-player" id="processedVideo" controls style="display: none;">
+                      Your browser does not support the video tag.
+                  </video>
+                  <div class="video-placeholder" id="videoPlaceholder">
+                      <i class="fas fa-play-circle"></i>
+                      <p>Processed video will appear here</p>
+                  </div>
+              </div>
+
+              <div class="analysis-report-container">
+                  <div class="report-header">
+                      <h3>Analysis Report</h3>
+                      <div class="report-actions">
+                          <button class="btn-icon" title="Copy report">
+                              <i class="fas fa-copy"></i>
+                          </button>
+                          <button class="btn-icon" title="Download report">
+                              <i class="fas fa-download"></i>
+                          </button>
+                      </div>
+                  </div>
+                  <div class="analysis-report" id="analysisReport">
+                      <p>Analysis report will appear here after processing...</p>
+                  </div>
+              </div>
+          </div>
+        </div>
+
+        <!-- AI Chat Page -->
+        <div class="page-content" id="chat">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>AI Assistant</h3>
+                    <div class="chat-actions">
+                        <button class="btn-outline" id="clearChatBtn">
+                            <i class="fas fa-trash"></i>
+                            Clear Chat
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p>Hello! I'm your AI assistant. I can help you analyze video content, discuss findings, and answer questions about the footage. Upload and analyze a video first, then ask me anything about it!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Ask about the analyzed video...">
+                        <button class="btn-icon" id="voiceInputBtn" title="Voice input (coming soon)" disabled>
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="btn-primary" id="sendChatBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-sidebar">
+                <div class="quick-questions">
+                    <h4>Quick Questions</h4>
+                    <div class="question-buttons">
+                        <button class="question-btn" data-question="What activities did you observe in the video?">
+                            What activities were observed?
+                        </button>
+                        <button class="question-btn" data-question="How many people were visible in the scene?">
+                            How many people were there?
+                        </button>
+                        <button class="question-btn" data-question="Were there any safety concerns or anomalies?">
+                            Any safety concerns?
+                        </button>
+                        <button class="question-btn" data-question="Describe the environment and setting of the video.">
+                            Describe the environment
+                        </button>
+                        <button class="question-btn" data-question="What interactions occurred between people?">
+                            What interactions occurred?
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-features">
+                    <h4>Features</h4>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Context-aware responses</li>
+                        <li><i class="fas fa-check"></i> Natural language processing</li>
+                        <li><i class="fas fa-check"></i> Conversation memory</li>
+                        <li><i class="fas fa-clock"></i> Voice input (coming soon)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Reports Page -->
+        <div class="page-content" id="reports">
+            <div class="reports-container">
+                <div class="reports-header">
+                    <h1>Analysis Reports</h1>
+                    <div class="reports-actions">
+                        <button class="btn btn-secondary" title="Print">
+                            <i class="fas fa-print"></i>
+                            <span>Print</span>
+                        </button>
+                        <button class="btn-primary" title="Export PDF">
+                            <i class="fas fa-download"></i>
+                            <span>Export PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="analysis-report-card">
+                    <div class="report-title">
+                        <h2>Video Analysis Report</h2>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-chart-pie"></i> Summary Statistics</h3>
+                        <div class="stats-row">
+                            <div class="stat-box">
+                                <div class="stat-label">Total Anomalies Detected</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">High Severity</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Medium Severity</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Analysis Duration</div>
+                                <div class="stat-value">0s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detected Anomalies -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Detected Anomalies</h3>
+                        <div class="anomaly-item">
+                            <div class="anomaly-time">2023-11-15 14:32:45</div>
+                            <div class="anomaly-description">Unauthorized person detected in restricted area</div>
+                            <div class="anomaly-severity high">High</div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Summary -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-file-alt"></i> Analysis Summary</h3>
+                        <div class="summary-content">
+                            <p>No analysis summary available. Run a video analysis first.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page-content" id="settings">
+            <div class="settings-grid">
+                <div class="settings-section">
+                    <h3>Analysis Settings</h3>
+                    <div class="setting-item">
+                        <label for="frameRate">Analysis Frame Rate</label>
+                        <select id="frameRate">
+                            <option value="15">15 frames</option>
+                            <option value="20" selected>20 frames</option>
+                            <option value="25">25 frames</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="analysisInterval">Live Analysis Interval</label>
+                        <select id="analysisInterval">
+                            <option value="10">10 seconds</option>
+                            <option value="20" selected>20 seconds</option>
+                            <option value="30">30 seconds</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Notification Settings</h3>
+                    <div class="setting-item">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="anomalyNotifications" checked>
+                            <span class="toggle-slider"></span>
+                            Anomaly Notifications
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="soundAlerts" checked>
+                            <span class="toggle-slider"></span>
+                            Sound Alerts
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>API Configuration</h3>
+                    <div class="setting-item">
+                        <label for="apiKey">NVIDIA API Key</label>
+                        <input type="password" id="apiKey" placeholder="Enter API key">
+                    </div>
+                    <div class="setting-item">
+                        <label for="apiUrl">API Endpoint</label>
+                        <input type="url" id="apiUrl" value="https://ai.api.nvidia.com/v1/vlm/nvidia/vila">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn-primary" id="saveSettingsBtn">
+                    <i class="fas fa-save"></i>
+                    Save Settings
+                </button>
+                <button class="btn-outline" id="resetSettingsBtn">
+                    <i class="fas fa-undo"></i>
+                    Reset to Default
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/live-monitor.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>

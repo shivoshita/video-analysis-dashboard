@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="dashboard.html">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="live-monitor.html">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <span>Live Monitor</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="video-analysis.html">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Video Analysis</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="chat.html">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="reports.html">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Analysis Reports</span>
+                </a>
+            </li>
+            <li class="nav-item active">
+                <a href="settings.html">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Settings</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Settings Content -->
+        <div class="page-content active" id="settings">
+            <div class="settings-grid">
+                <div class="settings-section">
+                    <h3>Analysis Settings</h3>
+                    <div class="setting-item">
+                        <label for="frameRate">Analysis Frame Rate</label>
+                        <select id="frameRate">
+                            <option value="15">15 frames</option>
+                            <option value="20" selected>20 frames</option>
+                            <option value="25">25 frames</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="analysisInterval">Live Analysis Interval</label>
+                        <select id="analysisInterval">
+                            <option value="10">10 seconds</option>
+                            <option value="20" selected>20 seconds</option>
+                            <option value="30">30 seconds</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Notification Settings</h3>
+                    <div class="setting-item">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="anomalyNotifications" checked>
+                            <span class="toggle-slider"></span>
+                            Anomaly Notifications
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="soundAlerts" checked>
+                            <span class="toggle-slider"></span>
+                            Sound Alerts
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>API Configuration</h3>
+                    <div class="setting-item">
+                        <label for="apiKey">NVIDIA API Key</label>
+                        <input type="password" id="apiKey" placeholder="Enter API key">
+                    </div>
+                    <div class="setting-item">
+                        <label for="apiUrl">API Endpoint</label>
+                        <input type="url" id="apiUrl" value="https://ai.api.nvidia.com/v1/vlm/nvidia/vila">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>System Information</h3>
+                    <div class="setting-item">
+                        <label>Application Version</label>
+                        <div class="setting-value">v1.0.0</div>
+                    </div>
+                    <div class="setting-item">
+                        <label>Last Updated</label>
+                        <div class="setting-value">2023-11-15</div>
+                    </div>
+                    <div class="setting-item">
+                        <label>Database Status</label>
+                        <div class="setting-value status-online">Connected</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn-primary" id="saveSettingsBtn">
+                    <i class="fas fa-save"></i>
+                    Save Settings
+                </button>
+                <button class="btn-outline" id="resetSettingsBtn">
+                    <i class="fas fa-undo"></i>
+                    Reset to Default
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Initialize settings when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.VideoAnalysisDashboard) {
+                window.dashboard = new VideoAnalysisDashboard();
+                // Force settings page initialization
+                window.dashboard.currentPage = 'settings';
+                window.dashboard.initializePage('settings');
+            }
+
+            // Add clear data confirmation
+            const clearDataBtn = document.getElementById('clearDataBtn');
+            if (clearDataBtn) {
+                clearDataBtn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                        // Clear localStorage
+                        localStorage.clear();
+                        
+                        // Show success message
+                        if (window.dashboard) {
+                            window.dashboard.showToast('All data cleared successfully', 'info');
+                        }
+                        
+                        // Refresh page after a delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

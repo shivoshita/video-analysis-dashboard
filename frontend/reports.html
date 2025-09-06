@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Reports - Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Analysis Reports Styles */
+        .reports-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f8fafc;
+            min-height: calc(100vh - 60px);
+        }
+
+        .reports-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .reports-header h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            color: #1a202c;
+            margin: 0;
+        }
+
+        .reports-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .reports-actions .btn-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .reports-actions .btn-icon:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .reports-actions .btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .reports-actions .btn-primary:hover {
+            background: #059669;
+        }
+
+        .analysis-report-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .report-title {
+            background: white;
+            color: black;
+            padding: 1.5rem 2rem;
+        }
+
+        .report-title h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .report-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .report-section:last-child {
+            border-bottom: none;
+        }
+
+        .report-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .report-section h3 i {
+            color: #10b981;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .anomaly-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .anomaly-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .anomaly-time {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-family: 'Monaco', 'Courier New', monospace;
+            min-width: 140px;
+        }
+
+        .anomaly-description {
+            flex: 1;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .anomaly-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .anomaly-severity.high {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .anomaly-severity.medium {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .anomaly-severity.low {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .summary-content {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-content p {
+            margin: 0;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .reports-container {
+                padding: 1rem;
+            }
+
+            .reports-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .reports-actions {
+                justify-content: center;
+            }
+
+            .report-title, .report-section {
+                padding: 1rem 1.5rem;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .anomaly-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .anomaly-time {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="dashboard.html">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="live-monitor.html">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <span>Live Monitor</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="video-analysis.html">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Video Analysis</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="chat.html">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </a>
+            </li>
+            <li class="nav-item active">
+                <a href="reports.html">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Analysis Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="settings.html">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Analysis Reports</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Analysis Reports Content -->
+        <div class="page-content active" id="reports">
+            <div class="reports-container">
+                <div class="reports-header">
+                    <h1>Analysis Reports</h1>
+                    <div class="reports-actions">
+                        <button class="btn btn-secondary" title="Print">
+                            <i class="fas fa-print"></i>
+                            <span>Print</span>
+                        </button>
+                        <button class="btn-primary" title="Export PDF">
+                            <i class="fas fa-download"></i>
+                            <span>Export PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="analysis-report-card">
+                    <div class="report-title">
+                        <h2>Video Analysis Report</h2>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-chart-pie"></i> Summary Statistics</h3>
+                        <div class="stats-row">
+                            <div class="stat-box">
+                                <div class="stat-label">Total Anomalies Detected</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">High Severity</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Medium Severity</div>
+                                <div class="stat-value">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Analysis Duration</div>
+                                <div class="stat-value">0s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detected Anomalies -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Detected Anomalies</h3>
+                        <div class="anomaly-item">
+                            <div class="anomaly-time">2023-11-15 14:32:45</div>
+                            <div class="anomaly-description">Unauthorized person detected in restricted area</div>
+                            <div class="anomaly-severity high">High</div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Summary -->
+                    <div class="report-section">
+                        <h3><i class="fas fa-file-alt"></i> Analysis Summary</h3>
+                        <div class="summary-content">
+                            <p>No analysis summary available. Run a video analysis first.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Initialize reports when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.VideoAnalysisDashboard) {
+                window.dashboard = new VideoAnalysisDashboard();
+                // Force reports page initialization
+                window.dashboard.currentPage = 'reports';
+                window.dashboard.initializePage('reports');
+            }
+        });
+    </script>
+</body>
+</html>

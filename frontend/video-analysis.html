@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis - Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="dashboard.html">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="live-monitor.html">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <span>Live Monitor</span>
+                </a>
+            </li>
+            <li class="nav-item active">
+                <a href="video-analysis.html">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Video Analysis</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="chat.html">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="reports.html">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Analysis Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="settings.html">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Video Analysis</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Video Analysis Content -->
+        <div class="page-content active" id="analysis">
+            <div class="upload-section">
+                <div class="upload-card">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="videoFileInput" accept="video/*" hidden>
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Upload Video File</h3>
+                            <p>Drag and drop your video here, or click to browse</p>
+                            <small>Supports MP4, AVI, MOV formats</small>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-actions">
+                        <button class="btn-primary" id="analyzeVideoBtn" disabled>
+                            <i class="fas fa-play"></i>
+                            Analyze Video
+                        </button>
+                        <button class="btn-secondary" id="detectAnomaliesBtn" disabled>
+                            <i class="fas fa-shield-alt"></i>
+                            Detect Anomalies
+                        </button>
+                    </div>
+                </div>
+
+                <div class="video-info" id="videoInfo" style="display: none;">
+                    <h4>Video Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span>Duration:</span>
+                            <span id="videoDuration">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Resolution:</span>
+                            <span id="videoResolution">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Size:</span>
+                            <span id="videoSize">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Format:</span>
+                            <span id="videoFormat">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analysis-results" style="display: none;">
+                <div class="video-player-container">
+                    <div class="video-header">
+                        <h3>Processed Video</h3>
+                    </div>
+                    <video class="video-player" id="processedVideo" controls style="display: none;">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <i class="fas fa-play-circle"></i>
+                        <p>Processed video will appear here</p>
+                    </div>
+                </div>
+
+                <div class="analysis-report-container">
+                    <div class="report-header">
+                        <h3>Analysis Report</h3>
+                        <div class="report-actions">
+                            <button class="btn-icon" title="Copy report">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn-icon" title="Download report">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="analysis-report" id="analysisReport">
+                        <p>Analysis report will appear here after processing...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/video-analysis.js"></script>
+    <script>
+        // Initialize video analysis when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.VideoAnalysisDashboard) {
+                window.dashboard = new VideoAnalysisDashboard();
+                // Force analysis page initialization
+                window.dashboard.currentPage = 'analysis';
+                window.dashboard.initializePage('analysis');
+            }
+        });
+    </script>
+</body>
+</html>
