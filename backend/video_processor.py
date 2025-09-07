@@ -27,6 +27,10 @@ class VideoProcessor:
         self.frame_accumulator = []
         self.current_live_frame = None
         
+        # Performance optimization
+        self.frame_skip_counter = 0
+        self.frame_skip_rate = 5  # Only process every 5th frame for live display
+        
     def encode_frame_to_base64(self, frame):
         """Convert OpenCV frame to base64 string for API"""
         try:
@@ -436,7 +440,7 @@ Keep response brief and focused on WHAT happened."""
                 'error': str(e)
             }
 
-    # Live monitoring methods
+    # Live monitoring methods with optimized performance
     def start_live_tracking(self):
         """Start live video tracking with camera"""
         try:
@@ -460,14 +464,16 @@ Keep response brief and focused on WHAT happened."""
             if self.live_cap is None:
                 return False, "Error: Could not access any camera. Please check camera permissions."
             
-            # Configure camera
+            # Configure camera for better performance
             self.live_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             self.live_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             self.live_cap.set(cv2.CAP_PROP_FPS, 30)
+            self.live_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer size for lower latency
             
             self.live_tracking_active = True
             self.frame_accumulator = []
             self.current_live_frame = None
+            self.frame_skip_counter = 0
             
             return True, "Live tracking started successfully"
             
@@ -475,36 +481,44 @@ Keep response brief and focused on WHAT happened."""
             return False, f"Error starting live tracking: {str(e)}"
 
     def stop_live_tracking(self):
-        """Stop live video tracking"""
+        """Stop live video tracking cleanly"""
+        print("Stopping live video tracking...")
         self.live_tracking_active = False
         
         if self.live_cap is not None:
             self.live_cap.release()
             self.live_cap = None
+            print("Camera released successfully")
         
         self.current_live_frame = None
         self.frame_accumulator = []
+        self.frame_skip_counter = 0
 
     def get_current_frame(self):
-        """Get current frame from live camera"""
+        """Get current frame from live camera with optimized performance"""
         if not self.live_tracking_active or self.live_cap is None:
             return None
         
         try:
             ret, frame = self.live_cap.read()
             if ret and frame is not None:
-                # Add frame to accumulator
-                self.frame_accumulator.append(frame.copy())
+                # Skip frames for performance (only process every 5th frame for accumulator)
+                self.frame_skip_counter += 1
                 
-                # Keep accumulator manageable (last 20 seconds at 30fps = 600 frames)
-                if len(self.frame_accumulator) > 600:
-                    self.frame_accumulator = self.frame_accumulator[-600:]
+                if self.frame_skip_counter % self.frame_skip_rate == 0:
+                    # Add frame to accumulator less frequently
+                    self.frame_accumulator.append(frame.copy())
+                    
+                    # Keep accumulator manageable (last 10 seconds worth of sampled frames)
+                    # At 30fps with skip rate 5, we get 6 frames per second
+                    if len(self.frame_accumulator) > 60:  # 10 seconds * 6 frames/sec
+                        self.frame_accumulator = self.frame_accumulator[-60:]
                 
-                # Add overlay to current frame
+                # Always update display frame (but don't always accumulate)
                 display_frame = frame.copy()
                 cv2.putText(display_frame, f"LIVE - {datetime.now().strftime('%H:%M:%S')}", 
                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                cv2.putText(display_frame, f"Frames: {len(self.frame_accumulator)}", 
+                cv2.putText(display_frame, f"Buffer: {len(self.frame_accumulator)}", 
                            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 
                 self.current_live_frame = display_frame
@@ -516,20 +530,22 @@ Keep response brief and focused on WHAT happened."""
         return None
 
     def analyze_live_feed(self):
-        """Analyze current live feed"""
-        if not self.live_tracking_active or len(self.frame_accumulator) < 5:
-            return "Live tracking not active or insufficient frames"
+        """Analyze current live feed with reduced frequency"""
+        if not self.live_tracking_active or len(self.frame_accumulator) < 3:
+            return "Live tracking not active or insufficient frames for analysis"
         
         try:
-            # Take recent frames for analysis
-            recent_frames = self.frame_accumulator[-10:] if len(self.frame_accumulator) >= 10 else self.frame_accumulator
+            # Take fewer frames for analysis to reduce API load
+            # Use last 6 frames (approximately 1 second of sampled video)
+            recent_frames = self.frame_accumulator[-6:] if len(self.frame_accumulator) >= 6 else self.frame_accumulator
             
-            analysis_result = self.analyze_video_with_vila(recent_frames, len(recent_frames) / 30.0)
+            analysis_result = self.analyze_video_with_vila(recent_frames, len(recent_frames) / 6.0)
             
-            return f"INSTANT LIVE ANALYSIS [{datetime.now().strftime('%H:%M:%S')}]\n" + \
-                   "=" * 45 + "\n" + \
+            return f"LIVE ANALYSIS [{datetime.now().strftime('%H:%M:%S')}]\n" + \
+                   "=" * 40 + "\n" + \
                    f"Frames analyzed: {len(recent_frames)}\n" + \
-                   f"Camera: Live camera feed\n\n" + \
+                   f"Sample duration: ~{len(recent_frames)/6.0:.1f}s\n" + \
+                   f"Camera: Live feed\n\n" + \
                    "Analysis:\n" + \
                    "-" * 20 + "\n" + \
                    analysis_result
@@ -538,20 +554,22 @@ Keep response brief and focused on WHAT happened."""
             return f"Error analyzing live feed: {str(e)}"
 
     def check_live_anomalies(self):
-        """Check for anomalies in current live feed"""
-        if not self.live_tracking_active or len(self.frame_accumulator) < 5:
-            return "Live tracking not active or insufficient frames"
+        """Check for anomalies in current live feed with reduced frequency"""
+        if not self.live_tracking_active or len(self.frame_accumulator) < 3:
+            return "Live tracking not active or insufficient frames for anomaly detection"
         
         try:
-            # Take recent frames for anomaly detection
-            recent_frames = self.frame_accumulator[-15:] if len(self.frame_accumulator) >= 15 else self.frame_accumulator
+            # Take fewer frames for anomaly detection to reduce API load
+            # Use last 9 frames (approximately 1.5 seconds of sampled video)
+            recent_frames = self.frame_accumulator[-9:] if len(self.frame_accumulator) >= 9 else self.frame_accumulator
             
-            anomaly_result = self.detect_anomalies_with_vila(recent_frames, len(recent_frames) / 30.0)
+            anomaly_result = self.detect_anomalies_with_vila(recent_frames, len(recent_frames) / 6.0)
             
-            return f"INSTANT ANOMALY CHECK [{datetime.now().strftime('%H:%M:%S')}]\n" + \
-                   "=" * 45 + "\n" + \
+            return f"ANOMALY CHECK [{datetime.now().strftime('%H:%M:%S')}]\n" + \
+                   "=" * 40 + "\n" + \
                    f"Frames analyzed: {len(recent_frames)}\n" + \
-                   f"Camera: Live camera feed\n\n" + \
+                   f"Sample duration: ~{len(recent_frames)/6.0:.1f}s\n" + \
+                   f"Camera: Live feed\n\n" + \
                    "Anomaly Detection Results:\n" + \
                    "-" * 30 + "\n" + \
                    anomaly_result
@@ -559,21 +577,27 @@ Keep response brief and focused on WHAT happened."""
         except Exception as e:
             return f"Error detecting anomalies in live feed: {str(e)}"
 
-    def process_chat_question(self, question, video_context):
-        """Process chat question with video context"""
+    def process_chat_question(self, question, video_context, context_source=None):
+        """Process chat question with video context (supports both uploaded and live video)"""
         try:
             if not video_context:
                 return "No video context available. Please analyze a video first."
             
-            # Create context-aware prompt
-            context_prompt = f"""You are an AI assistant helping analyze a video. Here's what we know about the video:
+            # Create context-aware prompt with source information
+            context_type = "live video feed" if context_source == "live" else "uploaded video"
+            
+            context_prompt = f"""You are an AI assistant helping analyze a {context_type}. Here's what we know:
 
-VIDEO ANALYSIS CONTEXT:
+VIDEO ANALYSIS CONTEXT ({context_type.upper()}):
 {video_context.get('summary', 'No summary available')}
 
 USER QUESTION: {question}
 
-Please answer the user's question based on the video analysis context provided. Be conversational and helpful. If the question asks about something not visible in the analyzed frames, let them know the limitation while providing what information you can from the analysis."""
+Please answer the user's question based on the video analysis context provided. Be conversational and helpful. 
+
+{"Since this is from a live feed, note that the analysis is based on recent frames and may represent just a snapshot of ongoing activity." if context_source == "live" else "This analysis is from the complete uploaded video."}
+
+If the question asks about something not visible in the analyzed frames, let them know the limitation while providing what information you can from the analysis."""
 
             # Prepare payload for VILA (simplified for chat)
             payload = {
@@ -594,7 +618,7 @@ Please answer the user's question based on the video analysis context provided. 
                 "stream": False
             }
             
-            print(f"Processing chat question: {question}")
+            print(f"Processing chat question: {question} (Context: {context_source or 'uploaded'})")
             response = self.make_vila_request(payload)
             
             return response

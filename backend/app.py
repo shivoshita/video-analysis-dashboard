@@ -33,6 +33,7 @@ app_state = {
     'frame_accumulator': [],
     'live_reports': [],
     'video_context': None,
+    'live_video_context': None,  # Separate context for live video
     'chat_history': [],
     'anomaly_notifications': [],
     'system_stats': {
@@ -40,7 +41,10 @@ app_state = {
         'active_cameras': 24,
         'ai_scanned': 4294,
         'uptime': 99.8
-    }
+    },
+    # Background worker control
+    'workers_active': False,
+    'worker_threads': []
 }
 
 # Thread-safe queues
@@ -248,7 +252,7 @@ def start_live_monitoring():
             app_state['live_tracking_active'] = True
             app_state['live_cap'] = video_processor.live_cap
             
-            # Start background workers
+            # Start background workers with proper control
             start_live_workers()
             
             return jsonify({
@@ -270,10 +274,17 @@ def start_live_monitoring():
 def stop_live_monitoring():
     """Stop live camera monitoring"""
     try:
+        # Stop workers first
+        stop_live_workers()
+        
+        # Stop video processor
         video_processor.stop_live_tracking()
+        
+        # Reset state
         app_state['live_tracking_active'] = False
         app_state['live_cap'] = None
         app_state['current_live_frame'] = None
+        app_state['live_video_context'] = None
         
         return jsonify({
             'success': True,
@@ -332,6 +343,13 @@ def analyze_live_feed():
         }
         app_state['live_reports'].insert(0, report_entry)  # Add to front
         
+        # Update live video context for chat
+        app_state['live_video_context'] = {
+            'type': 'live_analysis',
+            'summary': result,
+            'timestamp': datetime.now().isoformat()
+        }
+        
         # Keep only last 50 reports
         app_state['live_reports'] = app_state['live_reports'][:50]
         
@@ -377,6 +395,14 @@ def check_live_anomalies():
                 'timestamp': datetime.now().isoformat()
             })
         
+        # Update live video context for chat
+        app_state['live_video_context'] = {
+            'type': 'live_anomaly',
+            'summary': result,
+            'timestamp': datetime.now().isoformat(),
+            'anomalies_detected': anomalies_detected
+        }
+        
         # Keep only last 50 reports
         app_state['live_reports'] = app_state['live_reports'][:50]
         
@@ -414,14 +440,34 @@ def process_chat_message():
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
         
-        # Check if we have video context
-        if not app_state['video_context']:
-            response = "No video has been analyzed yet. Please upload and analyze a video first in the 'Video Analysis' section, then come back to ask questions about it."
+        # Check for video context (uploaded video or live video)
+        video_context = None
+        context_source = None
+        
+        # Prioritize live video context if available and recent (within last 5 minutes)
+        if (app_state['live_video_context'] and 
+            app_state['live_tracking_active']):
+            
+            live_timestamp = datetime.fromisoformat(app_state['live_video_context']['timestamp'])
+            time_diff = (datetime.now() - live_timestamp).total_seconds()
+            
+            if time_diff < 300:  # Within 5 minutes
+                video_context = app_state['live_video_context']
+                context_source = 'live'
+        
+        # Fall back to uploaded video context
+        if not video_context and app_state['video_context']:
+            video_context = app_state['video_context']
+            context_source = 'uploaded'
+        
+        if not video_context:
+            response = "No video has been analyzed yet. Please either:\n• Upload and analyze a video in the 'Video Analysis' section, or\n• Start live monitoring and analyze the live feed\n\nThen come back to ask questions about it!"
         else:
             # Process with video context
             response = video_processor.process_chat_question(
                 user_message, 
-                app_state['video_context']
+                video_context,
+                context_source
             )
         
         # Add to chat history
@@ -443,6 +489,7 @@ def process_chat_message():
         return jsonify({
             'success': True,
             'response': response,
+            'context_source': context_source,
             'timestamp': datetime.now().isoformat()
         })
         
@@ -507,79 +554,108 @@ def mark_notification_read(notification_id):
 # ===== BACKGROUND WORKERS =====
 
 def start_live_workers():
-    """Start background workers for live monitoring"""
+    """Start background workers for live monitoring with proper control"""
+    
+    # Set workers as active
+    app_state['workers_active'] = True
+    app_state['worker_threads'] = []
     
     def live_analysis_worker():
-        """Background worker for periodic analysis"""
+        """Background worker for periodic analysis - EVERY 20 SECONDS"""
         last_analysis = time.time()
         
-        while app_state['live_tracking_active']:
+        while app_state['workers_active'] and app_state['live_tracking_active']:
             try:
                 current_time = time.time()
                 
-                # Analyze every 20 seconds
+                # Analyze every 20 seconds (not every second!)
                 if current_time - last_analysis >= 20:
-                    result = video_processor.analyze_live_feed()
-                    
-                    if result:
-                        report_entry = {
-                            'id': len(app_state['live_reports']) + 1,
-                            'type': 'auto_analysis',
-                            'content': f"AUTOMATIC ANALYSIS [{datetime.now().strftime('%H:%M:%S')}]\n" + 
-                                      "=" * 40 + "\n" + result,
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        app_state['live_reports'].insert(0, report_entry)
-                        app_state['live_reports'] = app_state['live_reports'][:50]
+                    if app_state['live_tracking_active']:  # Double check
+                        result = video_processor.analyze_live_feed()
+                        
+                        if result:
+                            report_entry = {
+                                'id': len(app_state['live_reports']) + 1,
+                                'type': 'auto_analysis',
+                                'content': f"AUTOMATIC ANALYSIS [{datetime.now().strftime('%H:%M:%S')}]\n" + 
+                                          "=" * 40 + "\n" + result,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                            app_state['live_reports'].insert(0, report_entry)
+                            app_state['live_reports'] = app_state['live_reports'][:50]
+                            
+                            # Update live video context
+                            app_state['live_video_context'] = {
+                                'type': 'live_analysis',
+                                'summary': result,
+                                'timestamp': datetime.now().isoformat()
+                            }
                     
                     last_analysis = current_time
                 
-                time.sleep(1)
+                # Sleep for 2 seconds between checks
+                time.sleep(2)
                 
             except Exception as e:
                 print(f"Error in live analysis worker: {e}")
-                time.sleep(5)
+                if app_state['workers_active']:
+                    time.sleep(5)
+                else:
+                    break
     
     def live_anomaly_worker():
-        """Background worker for anomaly detection"""
+        """Background worker for anomaly detection - EVERY 10 SECONDS"""
         last_check = time.time()
         
-        while app_state['live_tracking_active']:
+        while app_state['workers_active'] and app_state['live_tracking_active']:
             try:
                 current_time = time.time()
                 
-                # Check for anomalies every 5 seconds
-                if current_time - last_check >= 5:
-                    result = video_processor.check_live_anomalies()
-                    
-                    if result and not result.lower().startswith('no significant anomalies'):
-                        app_state['system_stats']['accidents'] += 1
+                # Check for anomalies every 10 seconds (not every second!)
+                if current_time - last_check >= 10:
+                    if app_state['live_tracking_active']:  # Double check
+                        result = video_processor.check_live_anomalies()
                         
-                        report_entry = {
-                            'id': len(app_state['live_reports']) + 1,
-                            'type': 'auto_anomaly',
-                            'content': f"ANOMALY ALERT [{datetime.now().strftime('%H:%M:%S')}]\n" + 
-                                      "=" * 40 + "\n" + result,
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        app_state['live_reports'].insert(0, report_entry)
-                        
-                        # Add notification
-                        app_state['anomaly_notifications'].append({
-                            'id': len(app_state['anomaly_notifications']) + 1,
-                            'message': 'Live anomaly detected',
-                            'details': result[:100] + '...' if len(result) > 100 else result,
-                            'timestamp': datetime.now().isoformat(),
-                            'read': False
-                        })
+                        if result and not result.lower().startswith('no significant anomalies'):
+                            app_state['system_stats']['accidents'] += 1
+                            
+                            report_entry = {
+                                'id': len(app_state['live_reports']) + 1,
+                                'type': 'auto_anomaly',
+                                'content': f"ANOMALY ALERT [{datetime.now().strftime('%H:%M:%S')}]\n" + 
+                                          "=" * 40 + "\n" + result,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                            app_state['live_reports'].insert(0, report_entry)
+                            
+                            # Add notification
+                            app_state['anomaly_notifications'].append({
+                                'id': len(app_state['anomaly_notifications']) + 1,
+                                'message': 'Live anomaly detected',
+                                'details': result[:100] + '...' if len(result) > 100 else result,
+                                'timestamp': datetime.now().isoformat(),
+                                'read': False
+                            })
+                            
+                            # Update live video context
+                            app_state['live_video_context'] = {
+                                'type': 'live_anomaly',
+                                'summary': result,
+                                'timestamp': datetime.now().isoformat(),
+                                'anomalies_detected': True
+                            }
                     
                     last_check = current_time
                 
-                time.sleep(1)
+                # Sleep for 2 seconds between checks
+                time.sleep(2)
                 
             except Exception as e:
                 print(f"Error in live anomaly worker: {e}")
-                time.sleep(5)
+                if app_state['workers_active']:
+                    time.sleep(5)
+                else:
+                    break
     
     # Start workers in background threads
     analysis_thread = threading.Thread(target=live_analysis_worker, daemon=True)
@@ -587,6 +663,20 @@ def start_live_workers():
     
     analysis_thread.start()
     anomaly_thread.start()
+    
+    # Store thread references
+    app_state['worker_threads'] = [analysis_thread, anomaly_thread]
+
+def stop_live_workers():
+    """Stop background workers cleanly"""
+    app_state['workers_active'] = False
+    
+    # Wait for threads to finish (max 5 seconds)
+    for thread in app_state['worker_threads']:
+        if thread.is_alive():
+            thread.join(timeout=5)
+    
+    app_state['worker_threads'] = []
 
 # ===== STATIC FILE SERVING =====
 
@@ -615,6 +705,19 @@ def internal_error(error):
 @app.errorhandler(413)
 def too_large(error):
     return jsonify({'error': 'File too large'}), 413
+
+# ===== CLEANUP ON EXIT =====
+
+import atexit
+
+def cleanup_on_exit():
+    """Clean up resources on application exit"""
+    print("Cleaning up resources...")
+    stop_live_workers()
+    if video_processor:
+        video_processor.stop_live_tracking()
+
+atexit.register(cleanup_on_exit)
 
 # ===== MAIN =====
 

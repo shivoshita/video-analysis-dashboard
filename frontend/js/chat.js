@@ -1,9 +1,12 @@
-// Chat JavaScript Module
+// Chat JavaScript Module - Fixed duplicate event listeners
 class ChatModule {
     constructor(dashboard) {
         this.dashboard = dashboard;
         this.apiBaseUrl = dashboard.apiBaseUrl;
         this.chatHistory = [];
+        this.hasLiveContext = false;
+        this.hasUploadedContext = false;
+        this.initialized = false;
         
         this.initializeElements();
         this.setupEventListeners();
@@ -20,8 +23,14 @@ class ChatModule {
     }
 
     setupEventListeners() {
+        // Prevent duplicate event listeners
+        if (this.initialized) return;
+
         if (this.sendBtn) {
-            this.sendBtn.addEventListener('click', () => this.sendMessage());
+            this.sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.sendMessage();
+            });
         }
 
         if (this.chatInput) {
@@ -40,12 +49,16 @@ class ChatModule {
         }
 
         if (this.clearBtn) {
-            this.clearBtn.addEventListener('click', () => this.clearChat());
+            this.clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearChat();
+            });
         }
 
-        // Quick question buttons
+        // Quick question buttons - enhanced with live context awareness
         this.questionBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
                 const question = btn.dataset.question;
                 if (this.chatInput) {
                     this.chatInput.value = question;
@@ -57,10 +70,13 @@ class ChatModule {
         });
 
         if (this.voiceInputBtn) {
-            this.voiceInputBtn.addEventListener('click', () => {
+            this.voiceInputBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.dashboard.showToast('Voice input coming soon!', 'info');
             });
         }
+
+        this.initialized = true;
     }
 
     async sendMessage() {
@@ -92,13 +108,13 @@ class ChatModule {
             this.removeTypingIndicator(typingIndicator);
 
             if (response.success) {
-                // Add assistant response to UI
-                this.addMessageToUI('assistant', response.response);
+                // Add assistant response to UI with context indicator
+                this.addMessageToUI('assistant', response.response, response.context_source);
                 
-                // Update local history
+                // Update local history (but don't duplicate)
                 this.chatHistory.push(
                     { role: 'user', content: message, timestamp: new Date().toISOString() },
-                    { role: 'assistant', content: response.response, timestamp: new Date().toISOString() }
+                    { role: 'assistant', content: response.response, timestamp: new Date().toISOString(), context_source: response.context_source }
                 );
             } else {
                 throw new Error(response.error || 'Failed to get response');
@@ -110,11 +126,11 @@ class ChatModule {
             
             console.error('Chat message failed:', error);
             this.addMessageToUI('assistant', 'Sorry, I encountered an error processing your message. Please try again.');
-            this.dashboard.showToast('Failed to send message', 'error');
+            this.dashboard.showToast('Failed to send message: ' + error.message, 'error');
         }
     }
 
-    addMessageToUI(role, content) {
+    addMessageToUI(role, content, contextSource = null) {
         if (!this.chatMessages) return;
 
         const messageDiv = document.createElement('div');
@@ -126,7 +142,24 @@ class ChatModule {
         
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
-        messageContent.innerHTML = this.formatMessage(content);
+        
+        // Add context indicator for assistant messages
+        let contextIndicator = '';
+        if (role === 'assistant' && contextSource) {
+            const contextIcon = contextSource === 'live' ? 
+                '<i class="fas fa-broadcast-tower" style="color: #ef4444;"></i>' : 
+                '<i class="fas fa-video" style="color: #06b6d4;"></i>';
+            const contextText = contextSource === 'live' ? 'Live Video' : 'Uploaded Video';
+            
+            contextIndicator = `
+                <div class="context-indicator" style="font-size: 0.8em; color: #64748b; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                    ${contextIcon}
+                    <span>Based on ${contextText}</span>
+                </div>
+            `;
+        }
+        
+        messageContent.innerHTML = contextIndicator + this.formatMessage(content);
         
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(messageContent);
@@ -207,7 +240,7 @@ class ChatModule {
     renderChatHistory() {
         if (!this.chatMessages) return;
 
-        // Clear current messages except welcome
+        // Clear current messages
         this.chatMessages.innerHTML = '';
 
         if (this.chatHistory.length === 0) {
@@ -217,22 +250,47 @@ class ChatModule {
 
         // Render all messages
         this.chatHistory.forEach(entry => {
-            this.addMessageToUI(entry.role, entry.content);
+            this.addMessageToUI(entry.role, entry.content, entry.context_source);
         });
     }
 
     showWelcomeMessage() {
         if (!this.chatMessages) return;
 
-        const welcomeMessage = `Hello! I'm your AI assistant. I can help you analyze video content, discuss findings, and answer questions about the footage. 
+        // Check if we have live monitoring or uploaded video
+        const liveStatus = this.dashboard.liveMonitor ? this.dashboard.liveMonitor.getStatus() : { active: false };
+        const hasVideo = this.dashboard.videoContext !== null;
 
-Upload and analyze a video first, then ask me anything about it!
+        let contextInfo = '';
+        if (liveStatus.active) {
+            contextInfo = `
+                <div class="context-status live-active" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; margin: 10px 0;">
+                    <i class="fas fa-broadcast-tower" style="color: #ef4444;"></i>
+                    <strong>Live Monitoring Active</strong> - Ask questions about the live video feed!
+                </div>
+            `;
+        } else if (hasVideo) {
+            contextInfo = `
+                <div class="context-status video-available" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px; margin: 10px 0;">
+                    <i class="fas fa-video" style="color: #06b6d4;"></i>
+                    <strong>Video Available</strong> - Ask questions about the analyzed video!
+                </div>
+            `;
+        }
+
+        const welcomeMessage = `Hello! I'm your AI assistant for video analysis. I can help you understand and discuss video content.
+
+${contextInfo ? contextInfo + '\n' : ''}**How to get started:**
+${liveStatus.active ? '• Ask about the current live video feed' : '• Upload and analyze a video in the "Video Analysis" section'}
+${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" section' : ''}
+• Then come back here to ask questions about it!
 
 **Example questions:**
-• What activities did you observe?
-• How many people were in the scene?
-• Were there any safety concerns?
-• Describe the environment and setting`;
+• What activities do you observe?
+• How many people are in the scene?
+• Are there any safety concerns?
+• Describe the environment and setting
+• What interactions are happening?`;
 
         this.chatMessages.innerHTML = `
             <div class="message assistant">
@@ -262,18 +320,56 @@ Upload and analyze a video first, then ask me anything about it!
 
         } catch (error) {
             console.error('Failed to clear chat:', error);
-            this.dashboard.showToast('Failed to clear chat history', 'error');
+            this.dashboard.showToast('Failed to clear chat history: ' + error.message, 'error');
         }
     }
 
-    // Method to update chat when new video is analyzed
+    // Method to update chat when new video is analyzed (uploaded video)
     updateVideoContext(videoContext) {
+        this.hasUploadedContext = true;
+        
         // Add a system message when new video context is available
         const contextMessage = videoContext.type === 'anomaly' 
             ? 'A new video has been analyzed for anomalies. You can now ask me questions about the anomaly detection results!'
             : 'A new video has been analyzed. You can now ask me questions about the video content!';
         
         this.addMessageToUI('assistant', contextMessage);
+        
+        // Refresh welcome message if no chat history
+        if (this.chatHistory.length === 0) {
+            this.showWelcomeMessage();
+        }
+    }
+
+    // Method to update chat when live video becomes available
+    updateLiveVideoContext(liveContext) {
+        this.hasLiveContext = true;
+        
+        // Only show message if this is the first time live monitoring starts
+        if (liveContext.type === 'live_video') {
+            const contextMessage = 'Live video monitoring is now active! You can ask me questions about what\'s currently happening in the live video feed.';
+            this.addMessageToUI('assistant', contextMessage);
+        }
+        
+        // Refresh welcome message to show live status
+        if (this.chatHistory.length === 0) {
+            this.showWelcomeMessage();
+        }
+    }
+
+    // Method to handle when live monitoring stops
+    updateLiveMonitoringStopped() {
+        this.hasLiveContext = false;
+        
+        const contextMessage = 'Live video monitoring has stopped. I can still answer questions about previously uploaded videos if available.';
+        this.addMessageToUI('assistant', contextMessage);
+        
+        // Refresh welcome message
+        setTimeout(() => {
+            if (this.chatHistory.length === 0) {
+                this.showWelcomeMessage();
+            }
+        }, 1000);
     }
 
     // Method to get current message count
@@ -286,6 +382,8 @@ Upload and analyze a video first, then ask me anything about it!
         const chatData = {
             exported_at: new Date().toISOString(),
             message_count: this.chatHistory.length,
+            has_live_context: this.hasLiveContext,
+            has_uploaded_context: this.hasUploadedContext,
             messages: this.chatHistory
         };
 
@@ -303,10 +401,55 @@ Upload and analyze a video first, then ask me anything about it!
         
         this.dashboard.showToast('Chat history exported', 'success');
     }
+
+    // Method to check current context availability
+    getContextStatus() {
+        const liveStatus = this.dashboard.liveMonitor ? this.dashboard.liveMonitor.getStatus() : { active: false };
+        
+        return {
+            hasLive: liveStatus.active,
+            hasUploaded: this.hasUploadedContext,
+            liveActive: liveStatus.active,
+            canChat: liveStatus.active || this.hasUploadedContext
+        };
+    }
 }
 
-// CSS for typing indicator (add to your CSS file)
-const typingCSS = `
+// CSS for context indicators and enhanced styling
+const enhancedChatCSS = `
+.context-indicator {
+    font-size: 0.8em;
+    color: #64748b;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.context-status {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-status.live-active {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.context-status i {
+    font-size: 1.1em;
+}
+
 .typing-indicator .typing-dots {
     display: flex;
     gap: 4px;
@@ -353,32 +496,32 @@ const typingCSS = `
 }
 `;
 
-// Inject CSS
-if (typeof document !== 'undefined') {
+// Inject CSS only once
+if (typeof document !== 'undefined' && !document.getElementById('chat-enhanced-styles')) {
     const style = document.createElement('style');
-    style.textContent = typingCSS;
+    style.id = 'chat-enhanced-styles';
+    style.textContent = enhancedChatCSS;
     document.head.appendChild(style);
 }
 
-// Extend the main dashboard class to include chat
+// Extend the main dashboard class to include chat - prevent duplicate initialization
 if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize chat when dashboard is ready
-        if (window.dashboard) {
+        // Only initialize once
+        if (window.dashboard && !window.dashboard.chatModule) {
             window.dashboard.chatModule = new ChatModule(window.dashboard);
-            
-            // Override chat methods in main dashboard
-            window.dashboard.sendChatMessage = () => window.dashboard.chatModule.sendMessage();
-            window.dashboard.clearChat = () => window.dashboard.chatModule.clearChat();
+            console.log('ChatModule initialized');
             
             // Override video analysis to update chat context
             const originalDisplayResults = window.dashboard.displayVideoResults;
-            window.dashboard.displayVideoResults = function(result) {
-                originalDisplayResults.call(this, result);
-                if (this.chatModule) {
-                    this.chatModule.updateVideoContext(result);
-                }
-            };
+            if (originalDisplayResults) {
+                window.dashboard.displayVideoResults = function(result) {
+                    originalDisplayResults.call(this, result);
+                    if (this.chatModule) {
+                        this.chatModule.updateVideoContext(result);
+                    }
+                };
+            }
         }
     });
 }
