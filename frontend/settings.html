@@ -7,6 +7,231 @@
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Settings-specific styles */
+        .settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border, #e5e7eb);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+        
+        .settings-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary, #6b7280);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .settings-tab.active {
+            color: var(--primary, #14b8a6);
+            border-bottom-color: var(--primary, #14b8a6);
+        }
+        
+        .settings-tab:hover {
+            color: var(--text-primary, #111827);
+        }
+        
+        .settings-content {
+            display: none;
+        }
+        
+        .settings-content.active {
+            display: block;
+        }
+        
+        .settings-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .settings-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #111827;
+            display: flex;
+            align-items: center;
+        }
+        
+        .settings-card h3 i {
+            margin-right: 10px;
+            color: #14b8a6;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: white;
+            color: #111827;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #d1d5db;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #14b8a6;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        
+        .settings-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: #14b8a6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0d9488;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-outline:hover {
+            background-color: #f9fafb;
+        }
+        
+        .storage-meter {
+            margin: 1rem 0;
+        }
+        
+        .storage-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .storage-fill {
+            width: 35%;
+            height: 100%;
+            background: #14b8a6;
+        }
+        
+        .flex-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .text-muted {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .settings-tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 10px;
+            }
+            
+            .settings-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -77,67 +302,281 @@
         </header>
 
         <!-- Settings Content -->
-        <div class="settings-grid">
-            <div class="settings-section">
-                <h3>Analysis Settings</h3>
-                <div class="setting-item">
-                    <label for="frameRate">Analysis Frame Rate</label>
-                    <select id="frameRate">
-                        <option value="15">15 frames</option>
-                        <option value="20" selected>20 frames</option>
-                        <option value="25">25 frames</option>
-                    </select>
+        <div class="settings-container">
+            <div class="settings-tabs">
+                <div class="settings-tab active" data-tab="analysis">Analysis</div>
+                <div class="settings-tab" data-tab="notifications">Notifications</div>
+                <div class="settings-tab" data-tab="api">API Configuration</div>
+                <div class="settings-tab" data-tab="storage">Storage</div>
+                <div class="settings-tab" data-tab="system">System</div>
+            </div>
+            
+            <!-- Analysis Settings -->
+            <div class="settings-content active" id="analysis-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-video"></i> Video Analysis Settings</h3>
+                    <div class="form-group">
+                        <label for="frameRate">Analysis Frame Rate</label>
+                        <select id="frameRate">
+                            <option value="15">15 frames</option>
+                            <option value="20" selected>20 frames</option>
+                            <option value="25">25 frames</option>
+                            <option value="30">30 frames</option>
+                        </select>
+                        <p class="text-muted">Higher frame rates provide more detailed analysis but increase processing time</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="analysisInterval">Live Analysis Interval</label>
+                        <select id="analysisInterval">
+                            <option value="10">10 seconds</option>
+                            <option value="20" selected>20 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Auto-save Analysis Results</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="autoSaveResults" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <label for="analysisInterval">Live Analysis Interval</label>
-                    <select id="analysisInterval">
-                        <option value="10">10 seconds</option>
-                        <option value="20" selected>20 seconds</option>
-                        <option value="30">30 seconds</option>
-                    </select>
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-shield-alt"></i> Anomaly Detection</h3>
+                    <div class="form-group">
+                        <label for="sensitivityLevel">Detection Sensitivity</label>
+                        <select id="sensitivityLevel">
+                            <option value="low">Low - Fewer false positives</option>
+                            <option value="medium" selected>Medium - Balanced</option>
+                            <option value="high">High - More sensitive</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Real-time Anomaly Detection</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="realtimeDetection" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h3>Notification Settings</h3>
-                <div class="setting-item">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="anomalyNotifications" checked>
-                        <span class="toggle-slider"></span>
-                        Anomaly Notifications
-                    </label>
+            <!-- Notifications Settings -->
+            <div class="settings-content" id="notifications-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-bell"></i> Alert Preferences</h3>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Anomaly Notifications</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="anomalyNotifications" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Sound Alerts</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="soundAlerts" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Email Notifications</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="emailNotifications">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="soundAlerts" checked>
-                        <span class="toggle-slider"></span>
-                        Sound Alerts
-                    </label>
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-envelope"></i> Email Settings</h3>
+                    <div class="form-group">
+                        <label for="notificationEmail">Notification Email</label>
+                        <input type="email" id="notificationEmail" placeholder="admin@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="alertFrequency">Alert Frequency</label>
+                        <select id="alertFrequency">
+                            <option value="immediate" selected>Immediate</option>
+                            <option value="hourly">Hourly Summary</option>
+                            <option value="daily">Daily Summary</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h3>API Configuration</h3>
-                <div class="setting-item">
-                    <label for="apiKey">NVIDIA API Key</label>
-                    <input type="password" id="apiKey" placeholder="Enter API key">
+            <!-- API Configuration Settings -->
+            <div class="settings-content" id="api-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-plug"></i> API Configuration</h3>
+                    <div class="form-group">
+                        <label for="apiKey">NVIDIA API Key</label>
+                        <input type="password" id="apiKey" placeholder="Enter API key">
+                        <p class="text-muted">Required for AI video analysis functionality</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiUrl">API Endpoint</label>
+                        <input type="url" id="apiUrl" value="https://ai.api.nvidia.com/v1/vlm/nvidia/vila">
+                    </div>
+                    <div class="form-group">
+                        <label for="modelVersion">AI Model Version</label>
+                        <select id="modelVersion">
+                            <option value="vila-1.5" selected>VILA 1.5 (Recommended)</option>
+                            <option value="vila-1.0">VILA 1.0 (Legacy)</option>
+                            <option value="vila-2.0-beta">VILA 2.0 (Beta)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <label for="apiUrl">API Endpoint</label>
-                    <input type="url" id="apiUrl" value="https://ai.api.nvidia.com/v1/vlm/nvidia/vila">
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-server"></i> Server Settings</h3>
+                    <div class="form-group">
+                        <label for="serverEndpoint">Local Server Endpoint</label>
+                        <input type="text" id="serverEndpoint" value="http://localhost:5000/api">
+                    </div>
+                    <div class="form-group">
+                        <label for="timeout">Request Timeout (seconds)</label>
+                        <input type="number" id="timeout" value="30" min="10" max="300">
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Enable Debug Logging</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="debugLogging">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="settings-actions">
-            <button class="btn-primary" id="saveSettingsBtn">
-                <i class="fas fa-save"></i>
-                Save Settings
-            </button>
-            <button class="btn-outline" id="resetSettingsBtn">
-                <i class="fas fa-undo"></i>
-                Reset to Default
-            </button>
+            <!-- Storage Settings -->
+            <div class="settings-content" id="storage-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-database"></i> Data Storage</h3>
+                    <div class="storage-meter">
+                        <div class="flex-row">
+                            <span>Storage Used</span>
+                            <span>1.8 GB of 5 GB</span>
+                        </div>
+                        <div class="storage-bar">
+                            <div class="storage-fill"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Store Video Previews</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="storeVideoPreviews" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Store Analysis Reports</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="storeReports" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="retentionPeriod">Data Retention Period</label>
+                        <select id="retentionPeriod">
+                            <option value="7">7 days</option>
+                            <option value="30" selected>30 days</option>
+                            <option value="90">90 days</option>
+                            <option value="365">1 year</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-trash"></i> Data Management</h3>
+                    <div class="form-group">
+                        <button class="btn btn-outline">Clear Temporary Files</button>
+                        <p class="text-muted">Remove temporary processing files to free up space</p>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-outline" style="color: #ef4444; border-color: #fecaca;">Clear All Analysis Data</button>
+                        <p class="text-muted">This will permanently delete all stored analysis results</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings -->
+            <div class="settings-content" id="system-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-sliders-h"></i> System Preferences</h3>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Hardware Acceleration</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="hardwareAcceleration" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                        <p class="text-muted">Use GPU acceleration for faster processing when available</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxConcurrentAnalyses">Max Concurrent Analyses</label>
+                        <select id="maxConcurrentAnalyses">
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Auto-update Software</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="autoUpdate" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-info-circle"></i> System Information</h3>
+                    <div class="form-group">
+                        <label>Version</label>
+                        <p>Video Intelligence Platform v1.0.0</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Updated</label>
+                        <p>November 15, 2024</p>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-outline">Check for Updates</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn-primary" id="saveSettingsBtn">
+                    <i class="fas fa-save"></i>
+                    Save Settings
+                </button>
+                <button class="btn-outline" id="resetSettingsBtn">
+                    <i class="fas fa-undo"></i>
+                    Reset to Default
+                </button>
+            </div>
         </div>
     </main>
 
@@ -152,6 +591,25 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <script>
+        // Tab switching functionality
+        const tabs = document.querySelectorAll('.settings-tab');
+        const contents = document.querySelectorAll('.settings-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(`${tabId}-settings`).classList.add('active');
+            });
+        });
+    </script>
+    
     <script src="js/app.js"></script>
 </body>
 </html>
