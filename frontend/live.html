@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitor - Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item active" data-page="live">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Live Monitor</span>
+            </li>
+            <li class="nav-item" data-page="analysis">
+                <i class="fas fa-play-circle"></i>
+                <span>Video Analysis</span>
+            </li>
+            <li class="nav-item" data-page="chat">
+                <i class="fas fa-comments"></i>
+                <span>AI Chat</span>
+            </li>
+            <li class="nav-item" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Analysis Reports</span>
+            </li>
+            <li class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title" id="pageTitle">Live Monitor</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Live Monitor Content -->
+        <div class="live-controls">
+            <div class="control-group">
+                <button class="btn-primary" id="startLiveBtn">
+                    <i class="fas fa-play"></i>
+                    Start Monitoring
+                </button>
+                <button class="btn-secondary" id="stopLiveBtn" disabled>
+                    <i class="fas fa-stop"></i>
+                    Stop Monitoring
+                </button>
+            </div>
+            
+            <div class="control-group">
+                <button class="btn-outline" id="analyzeLiveBtn" disabled>
+                    <i class="fas fa-search"></i>
+                    Analyze Feed
+                </button>
+                <button class="btn-outline" id="anomalyLiveBtn" disabled>
+                    <i class="fas fa-shield-alt"></i>
+                    Check Anomalies
+                </button>
+            </div>
+        </div>
+
+        <div class="live-grid">
+            <div class="video-container">
+                <div class="video-header">
+                    <h3>Live Camera Feed</h3>
+                    <div class="video-controls">
+                        <button class="btn-icon" id="refreshVideoBtn">
+                            <i class="fas fa-refresh"></i>
+                        </button>
+                        <button class="btn-icon">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="video-display" id="liveVideoDisplay">
+                    <div class="video-placeholder">
+                        <i class="fas fa-video-slash"></i>
+                        <p>No live feed active</p>
+                    </div>
+                </div>
+                <div class="video-status" id="videoStatus">
+                    <div class="status-item">
+                        <span>Status:</span>
+                        <span class="status-value" id="streamStatus">Offline</span>
+                    </div>
+                    <div class="status-item">
+                        <span>FPS:</span>
+                        <span class="status-value" id="streamFPS">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Quality:</span>
+                        <span class="status-value" id="streamQuality">N/A</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reports-container">
+                <div class="reports-header">
+                    <h3>Live Reports</h3>
+                    <button class="btn-icon" id="refreshReportsBtn">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </div>
+                <div class="reports-content" id="liveReports">
+                    <p>Live analysis reports will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/live-monitor.js"></script>
+</body>
+</html>

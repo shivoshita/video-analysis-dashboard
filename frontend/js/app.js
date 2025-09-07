@@ -1,8 +1,8 @@
-// Main App JavaScript - Core functionality and navigation
+// Main App JavaScript - Multi-page navigation
 class VideoAnalysisDashboard {
     constructor() {
         this.apiBaseUrl = 'http://localhost:5000/api';
-        this.currentPage = 'dashboard';
+        this.currentPage = this.getCurrentPageFromURL();
         this.isLiveActive = false;
         this.videoContext = null;
         
@@ -16,21 +16,30 @@ class VideoAnalysisDashboard {
         this.initializeCharts();
         this.startPeriodicUpdates();
         
-        // Initialize page
-        this.showPage('dashboard');
+        // Initialize current page
+        this.initializePage(this.currentPage);
+        this.setActiveNavFromURL();
+    }
+
+    getCurrentPageFromURL() {
+        const path = window.location.pathname;
+        const fileName = path.substring(path.lastIndexOf('/') + 1);
+        
+        // Map file names to page IDs
+        const pageMap = {
+            'index.html': 'dashboard',
+            '': 'dashboard',
+            'live.html': 'live',
+            'analysis.html': 'analysis',
+            'chat.html': 'chat',
+            'reports.html': 'reports',
+            'settings.html': 'settings'
+        };
+        
+        return pageMap[fileName] || 'dashboard';
     }
 
     setupEventListeners() {
-        // Navigation
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const page = item.dataset.page;
-                this.showPage(page);
-                this.setActiveNav(item);
-            });
-        });
-
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.querySelector('.sidebar');
@@ -54,51 +63,38 @@ class VideoAnalysisDashboard {
     setupNavigation() {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
                 const page = item.dataset.page;
-                this.showPage(page);
-                this.setActiveNav(item);
+                this.navigateToPage(page);
             });
         });
     }
 
-    showPage(pageId) {
-        // Hide all pages
-        const pages = document.querySelectorAll('.page-content');
-        pages.forEach(page => {
-            page.classList.remove('active');
-        });
-
-        // Show selected page
-        const targetPage = document.getElementById(pageId);
-        if (targetPage) {
-            targetPage.classList.add('active');
-            this.currentPage = pageId;
-            
-            // Update page title
-            const pageTitle = document.getElementById('pageTitle');
-            const titles = {
-                'dashboard': 'Dashboard',
-                'live': 'Live Monitor',
-                'analysis': 'Video Analysis',
-                'chat': 'AI Chat',
-                'settings': 'Settings'
-            };
-            if (pageTitle) {
-                pageTitle.textContent = titles[pageId] || 'Dashboard';
-            }
-
-            // Page-specific initialization
-            this.initializePage(pageId);
+    navigateToPage(pageId) {
+        const pageMap = {
+            'dashboard': 'index.html',
+            'live': 'live.html',
+            'analysis': 'analysis.html',
+            'chat': 'chat.html',
+            'reports': 'reports.html',
+            'settings': 'settings.html'
+        };
+        
+        const fileName = pageMap[pageId];
+        if (fileName) {
+            window.location.href = fileName;
         }
     }
 
-    setActiveNav(activeItem) {
+    setActiveNavFromURL() {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.classList.remove('active');
+            if (item.dataset.page === this.currentPage) {
+                item.classList.add('active');
+            }
         });
-        activeItem.classList.add('active');
     }
 
     initializePage(pageId) {
@@ -116,6 +112,9 @@ class VideoAnalysisDashboard {
                 break;
             case 'chat':
                 this.initializeChat();
+                break;
+            case 'reports':
+                this.loadReports();
                 break;
             case 'settings':
                 this.loadSettings();
@@ -336,7 +335,7 @@ class VideoAnalysisDashboard {
             }
         }
 
-        // Show analysis report - this is the key part
+        // Show analysis report
         const analysisReport = document.getElementById('analysisReport');
         const resultsSection = document.querySelector('.analysis-results');
         
@@ -348,21 +347,15 @@ class VideoAnalysisDashboard {
                 .replace(/={30}/g, '<hr style="border: 1px solid #475569; margin: 10px 0;">')
                 .replace(/-{30}/g, '<div style="border-bottom: 1px dashed #64748b; margin: 8px 0;"></div>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ /g, '&bull; ');
+                .replace(/ÃƒÆ'Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ /g, '&bull; ');
             
             analysisReport.innerHTML = formattedReport;
             
-            // CRITICAL: Show the results section
             if (resultsSection) {
                 resultsSection.style.display = 'block';
             }
             
-            // Scroll to results
             resultsSection?.scrollIntoView({ behavior: 'smooth' });
-            
-        } else {
-            console.error('No report found in result:', result);
-            this.showToast('Analysis completed but no report was generated', 'warning');
         }
 
         // Store context for chat
@@ -373,12 +366,8 @@ class VideoAnalysisDashboard {
             processing_time: result.processing_time
         };
 
-        // Update chat context if chat module exists
-        if (this.chatModule) {
-            this.chatModule.updateVideoContext(this.videoContext);
-        }
-
-        console.log('Video context stored:', this.videoContext);
+        // Store in sessionStorage for cross-page access
+        sessionStorage.setItem('videoContext', JSON.stringify(this.videoContext));
     }
 
     // Dashboard Methods
@@ -398,7 +387,6 @@ class VideoAnalysisDashboard {
             console.error('Failed to update dashboard stats:', error);
         }
     }
-    
 
     async loadRecentActivity() {
         try {
@@ -427,7 +415,6 @@ class VideoAnalysisDashboard {
     loadCameraOverview() {
         const cameraGrid = document.getElementById('cameraGrid');
         if (cameraGrid) {
-            // Mock camera data
             const cameras = [
                 { id: 'M2', status: 'online', location: 'Production Floor' },
                 { id: 'M25', status: 'offline', location: 'Warehouse' },
@@ -449,7 +436,6 @@ class VideoAnalysisDashboard {
     }
 
     initializeLiveMonitor() {
-        // Initialize live monitoring components
         const startBtn = document.getElementById('startLiveBtn');
         const stopBtn = document.getElementById('stopLiveBtn');
         const analyzeLiveBtn = document.getElementById('analyzeLiveBtn');
@@ -500,6 +486,12 @@ class VideoAnalysisDashboard {
         const clearBtn = document.getElementById('clearChatBtn');
         const questionBtns = document.querySelectorAll('.question-btn');
 
+        // Load video context from sessionStorage
+        const storedContext = sessionStorage.getItem('videoContext');
+        if (storedContext) {
+            this.videoContext = JSON.parse(storedContext);
+        }
+
         if (sendBtn) {
             sendBtn.addEventListener('click', () => this.sendChatMessage());
         }
@@ -525,8 +517,24 @@ class VideoAnalysisDashboard {
         });
     }
 
+    loadReports() {
+        // Load analysis reports from sessionStorage or API
+        const storedContext = sessionStorage.getItem('videoContext');
+        if (storedContext) {
+            const context = JSON.parse(storedContext);
+            this.updateReportsDisplay(context);
+        }
+    }
+
+    updateReportsDisplay(context) {
+        // Update the reports page with analysis data
+        const summarySection = document.querySelector('.summary-content p');
+        if (summarySection && context.summary) {
+            summarySection.innerHTML = context.summary.replace(/\n/g, '<br>');
+        }
+    }
+
     loadSettings() {
-        // Load saved settings from localStorage
         const settings = JSON.parse(localStorage.getItem('dashboardSettings') || '{}');
         
         const frameRate = document.getElementById('frameRate');
@@ -539,7 +547,6 @@ class VideoAnalysisDashboard {
         if (anomalyNotifications) anomalyNotifications.checked = settings.anomalyNotifications !== false;
         if (soundAlerts) soundAlerts.checked = settings.soundAlerts !== false;
 
-        // Setup settings event listeners
         const saveBtn = document.getElementById('saveSettingsBtn');
         const resetBtn = document.getElementById('resetSettingsBtn');
 
@@ -571,7 +578,6 @@ class VideoAnalysisDashboard {
     }
 
     startPeriodicUpdates() {
-        // Update dashboard every 30 seconds
         setInterval(() => {
             if (this.currentPage === 'dashboard') {
                 this.updateDashboardStats();
@@ -579,7 +585,6 @@ class VideoAnalysisDashboard {
             }
         }, 30000);
 
-        // Update live feed every 2 seconds when active
         setInterval(() => {
             if (this.currentPage === 'live' && this.isLiveActive) {
                 this.refreshLiveVideo();
@@ -624,12 +629,10 @@ class VideoAnalysisDashboard {
 
         container.appendChild(toast);
 
-        // Auto remove after 5 seconds
         setTimeout(() => {
             toast.remove();
         }, 5000);
 
-        // Manual close
         toast.querySelector('.toast-close').addEventListener('click', () => {
             toast.remove();
         });
@@ -653,6 +656,303 @@ class VideoAnalysisDashboard {
         } else {
             return `${minutes}:${secs.toString().padStart(2, '0')}`;
         }
+    }
+
+    // Live Monitoring Methods
+    async startLiveMonitoring() {
+        this.isLiveActive = true;
+        
+        // Update UI
+        const startBtn = document.getElementById('startLiveBtn');
+        const stopBtn = document.getElementById('stopLiveBtn');
+        const analyzeLiveBtn = document.getElementById('analyzeLiveBtn');
+        const anomalyLiveBtn = document.getElementById('anomalyLiveBtn');
+        const streamStatus = document.getElementById('streamStatus');
+        const streamFPS = document.getElementById('streamFPS');
+        const streamQuality = document.getElementById('streamQuality');
+        const videoDisplay = document.getElementById('liveVideoDisplay');
+
+        if (startBtn) startBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = false;
+        if (analyzeLiveBtn) analyzeLiveBtn.disabled = false;
+        if (anomalyLiveBtn) anomalyLiveBtn.disabled = false;
+        if (streamStatus) streamStatus.textContent = 'Online';
+        if (streamFPS) streamFPS.textContent = '30';
+        if (streamQuality) streamQuality.textContent = '1080p';
+
+        // Show simulated video feed
+        if (videoDisplay) {
+            videoDisplay.innerHTML = `
+                <div class="live-video-simulation">
+                    <div class="video-feed">
+                        <i class="fas fa-video"></i>
+                        <p>Live Camera Feed Active</p>
+                        <div class="feed-indicator">
+                            <span class="recording-dot"></span>
+                            <small>LIVE</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        this.showToast('Live monitoring started', 'success');
+    }
+
+    stopLiveMonitoring() {
+        this.isLiveActive = false;
+        
+        // Update UI
+        const startBtn = document.getElementById('startLiveBtn');
+        const stopBtn = document.getElementById('stopLiveBtn');
+        const analyzeLiveBtn = document.getElementById('analyzeLiveBtn');
+        const anomalyLiveBtn = document.getElementById('anomalyLiveBtn');
+        const streamStatus = document.getElementById('streamStatus');
+        const streamFPS = document.getElementById('streamFPS');
+        const streamQuality = document.getElementById('streamQuality');
+        const videoDisplay = document.getElementById('liveVideoDisplay');
+
+        if (startBtn) startBtn.disabled = false;
+        if (stopBtn) stopBtn.disabled = true;
+        if (analyzeLiveBtn) analyzeLiveBtn.disabled = true;
+        if (anomalyLiveBtn) anomalyLiveBtn.disabled = true;
+        if (streamStatus) streamStatus.textContent = 'Offline';
+        if (streamFPS) streamFPS.textContent = '0';
+        if (streamQuality) streamQuality.textContent = 'N/A';
+
+        // Show stopped state
+        if (videoDisplay) {
+            videoDisplay.innerHTML = `
+                <div class="video-placeholder">
+                    <i class="fas fa-video-slash"></i>
+                    <p>No live feed active</p>
+                </div>
+            `;
+        }
+        
+        this.showToast('Live monitoring stopped', 'info');
+    }
+
+    async analyzeLiveFeed() {
+        if (!this.isLiveActive) {
+            this.showToast('Please start live monitoring first', 'warning');
+            return;
+        }
+
+        this.showLoading('Analyzing live feed...');
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const mockResult = {
+                report: "Live feed analysis completed.\n\n" +
+                       "• Current scene: Production floor monitoring\n" +
+                       "• People detected: 3 individuals\n" +
+                       "• Activity level: Normal operations\n" +
+                       "• Safety status: All clear\n" +
+                       "• Timestamp: " + new Date().toLocaleString(),
+                timestamp: new Date().toISOString()
+            };
+            
+            this.displayLiveResults(mockResult, 'analysis');
+            this.showToast('Live analysis completed', 'success');
+            
+        } catch (error) {
+            console.error('Live analysis failed:', error);
+            this.showToast(`Live analysis failed: ${error.message}`, 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async checkLiveAnomalies() {
+        if (!this.isLiveActive) {
+            this.showToast('Please start live monitoring first', 'warning');
+            return;
+        }
+
+        this.showLoading('Checking for anomalies...');
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const mockResult = {
+                report: "Anomaly detection scan completed.\n\n" +
+                       "• Scanning duration: 30 seconds\n" +
+                       "• Anomalies detected: 0\n" +
+                       "• Risk level: Low\n" +
+                       "• Next scan: Automatic in 5 minutes\n" +
+                       "• Status: All systems normal",
+                anomalies_detected: 0,
+                timestamp: new Date().toISOString()
+            };
+            
+            this.displayLiveResults(mockResult, 'anomaly');
+            this.showToast('Anomaly check completed', 'success');
+            
+        } catch (error) {
+            console.error('Anomaly detection failed:', error);
+            this.showToast(`Anomaly detection failed: ${error.message}`, 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    displayLiveResults(result, type) {
+        const reportsContent = document.getElementById('liveReports');
+        if (!reportsContent) return;
+
+        const timestamp = new Date().toLocaleString();
+        const resultHtml = `
+            <div class="live-result-item" style="margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 8px; border-left: 4px solid ${type === 'anomaly' ? '#f59e0b' : '#10b981'};">
+                <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="margin: 0; font-size: 1rem;">${type === 'anomaly' ? 'Anomaly Detection' : 'Live Analysis'}</h4>
+                    <span class="result-type" style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: ${type === 'anomaly' ? '#fef3c7' : '#d1fae5'}; color: ${type === 'anomaly' ? '#d97706' : '#059669'};">${type.toUpperCase()}</span>
+                </div>
+                <div class="result-content" style="color: #6b7280; line-height: 1.6;">
+                    ${result.report ? result.report.replace(/\n/g, '<br>') : 'No detailed report available'}
+                </div>
+                <small style="color: #9ca3af; font-size: 0.875rem;">${timestamp}</small>
+                ${result.anomalies_detected !== undefined ? `<div class="anomaly-count" style="margin-top: 0.5rem; font-weight: 500; color: ${result.anomalies_detected > 0 ? '#dc2626' : '#059669'};">Anomalies: ${result.anomalies_detected}</div>` : ''}
+            </div>
+        `;
+
+        // Add to top of reports
+        if (reportsContent.innerHTML.includes('Live analysis reports will appear here')) {
+            reportsContent.innerHTML = resultHtml;
+        } else {
+            reportsContent.innerHTML = resultHtml + reportsContent.innerHTML;
+        }
+    }
+
+    refreshLiveVideo() {
+        if (this.isLiveActive) {
+            this.showToast('Video feed refreshed', 'info');
+        } else {
+            this.showToast('Start monitoring first to refresh video', 'warning');
+        }
+    }
+
+    refreshLiveReports() {
+        const reportsContent = document.getElementById('liveReports');
+        if (reportsContent) {
+            // Just show refresh message, don't clear existing reports
+            this.showToast('Reports refreshed', 'info');
+        }
+    }
+
+    // Chat Methods
+    async sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+        
+        if (!chatInput || !chatMessages || !chatInput.value.trim()) return;
+
+        const message = chatInput.value.trim();
+        chatInput.value = '';
+
+        // Add user message
+        this.addChatMessage(message, 'user');
+
+        // Show typing indicator
+        const typingIndicator = this.addTypingIndicator();
+
+        try {
+            // Get video context
+            const context = this.videoContext || JSON.parse(sessionStorage.getItem('videoContext') || 'null');
+            
+            const response = await fetch(`${this.apiBaseUrl}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    context: context
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Chat request failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // Remove typing indicator
+            typingIndicator.remove();
+            
+            // Add assistant response
+            this.addChatMessage(result.response || 'Sorry, I could not process your request.', 'assistant');
+            
+        } catch (error) {
+            console.error('Chat request failed:', error);
+            typingIndicator.remove();
+            this.addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+        }
+    }
+
+    addChatMessage(message, sender) {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas ${sender === 'user' ? 'fa-user' : 'fa-robot'}"></i>
+            </div>
+            <div class="message-content">
+                <p>${message.replace(/\n/g, '<br>')}</p>
+            </div>
+        `;
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    addTypingIndicator() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return null;
+
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message assistant typing';
+        typingDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return typingDiv;
+    }
+
+    clearChat() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+
+        // Keep the initial assistant message
+        chatMessages.innerHTML = `
+            <div class="message assistant">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p>Hello! I'm your AI assistant. I can help you analyze video content, discuss findings, and answer questions about the footage. Upload and analyze a video first, then ask me anything about it!</p>
+                </div>
+            </div>
+        `;
+        
+        this.showToast('Chat cleared', 'info');
     }
 }
 

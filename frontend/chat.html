@@ -19,41 +19,29 @@
         </div>
         
         <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="dashboard.html">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Dashboard</span>
-                </a>
+            <li class="nav-item" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
             </li>
-            <li class="nav-item">
-                <a href="live-monitor.html">
-                    <i class="fas fa-broadcast-tower"></i>
-                    <span>Live Monitor</span>
-                </a>
+            <li class="nav-item" data-page="live">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Live Monitor</span>
             </li>
-            <li class="nav-item">
-                <a href="video-analysis.html">
-                    <i class="fas fa-play-circle"></i>
-                    <span>Video Analysis</span>
-                </a>
+            <li class="nav-item" data-page="analysis">
+                <i class="fas fa-play-circle"></i>
+                <span>Video Analysis</span>
             </li>
-            <li class="nav-item active">
-                <a href="chat.html">
-                    <i class="fas fa-comments"></i>
-                    <span>AI Chat</span>
-                </a>
+            <li class="nav-item active" data-page="chat">
+                <i class="fas fa-comments"></i>
+                <span>AI Chat</span>
             </li>
-            <li class="nav-item">
-                <a href="reports.html">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Analysis Reports</span>
-                </a>
+            <li class="nav-item" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Analysis Reports</span>
             </li>
-            <li class="nav-item">
-                <a href="settings.html">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
+            <li class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
             </li>
         </ul>
         
@@ -73,7 +61,7 @@
                 <button class="menu-toggle" id="menuToggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="page-title">AI Chat</h1>
+                <h1 class="page-title" id="pageTitle">AI Chat</h1>
             </div>
             
             <div class="header-right">
@@ -89,107 +77,71 @@
         </header>
 
         <!-- AI Chat Content -->
-        <div class="page-content active" id="chat">
-            <div class="chat-container">
-                <div class="chat-header">
-                    <h3>AI Assistant</h3>
-                    <div class="chat-actions">
-                        <button class="btn-outline" id="clearChatBtn">
-                            <i class="fas fa-trash"></i>
-                            Clear Chat
-                        </button>
-                    </div>
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3>AI Assistant</h3>
+                <div class="chat-actions">
+                    <button class="btn-outline" id="clearChatBtn">
+                        <i class="fas fa-trash"></i>
+                        Clear Chat
+                    </button>
                 </div>
+            </div>
 
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message assistant">
-                        <div class="message-avatar">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <div class="message-content">
-                            <p>Hello! I'm your AI assistant. I can help you analyze video content, discuss findings, and answer questions about the footage. Upload and analyze a video first, then ask me anything about it!</p>
-                            <p><strong>Example questions:</strong></p>
-                            <ul>
-                                <li>What activities did you observe?</li>
-                                <li>How many people were in the scene?</li>
-                                <li>Were there any safety concerns?</li>
-                                <li>Describe the environment and setting</li>
-                            </ul>
-                        </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
                     </div>
-                </div>
-
-                <div class="chat-input-container">
-                    <div class="chat-input">
-                        <textarea id="chatInput" placeholder="Ask about the analyzed video..." rows="1"></textarea>
-                        <button class="btn-icon" id="voiceInputBtn" title="Voice input (coming soon)" disabled>
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <button class="btn-primary" id="sendChatBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+                    <div class="message-content">
+                        <p>Hello! I'm your AI assistant. I can help you analyze video content, discuss findings, and answer questions about the footage. Upload and analyze a video first, then ask me anything about it!</p>
                     </div>
                 </div>
             </div>
 
-            <div class="chat-sidebar">
-                <div class="quick-questions">
-                    <h4>Quick Questions</h4>
-                    <div class="question-buttons">
-                        <button class="question-btn" data-question="What activities did you observe in the video?">
-                            What activities were observed?
-                        </button>
-                        <button class="question-btn" data-question="How many people were visible in the scene?">
-                            How many people were there?
-                        </button>
-                        <button class="question-btn" data-question="Were there any safety concerns or anomalies?">
-                            Any safety concerns?
-                        </button>
-                        <button class="question-btn" data-question="Describe the environment and setting of the video.">
-                            Describe the environment
-                        </button>
-                        <button class="question-btn" data-question="What interactions occurred between people?">
-                            What interactions occurred?
-                        </button>
-                        <button class="question-btn" data-question="What time of day was this recorded?">
-                            What time of day?
-                        </button>
-                        <button class="question-btn" data-question="Were there any vehicles in the scene?">
-                            Any vehicles visible?
-                        </button>
-                        <button class="question-btn" data-question="How would you rate the video quality?">
-                            Video quality assessment
-                        </button>
-                    </div>
+            <div class="chat-input-container">
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask about the analyzed video...">
+                    <button class="btn-icon" id="voiceInputBtn" title="Voice input (coming soon)" disabled>
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="btn-primary" id="sendChatBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
+            </div>
+        </div>
 
-                <div class="chat-features">
-                    <h4>Features</h4>
-                    <ul>
-                        <li><i class="fas fa-check"></i> Context-aware responses</li>
-                        <li><i class="fas fa-check"></i> Natural language processing</li>
-                        <li><i class="fas fa-check"></i> Conversation memory</li>
-                        <li><i class="fas fa-clock"></i> Voice input (coming soon)</li>
-                        <li><i class="fas fa-check"></i> Multi-language support</li>
-                        <li><i class="fas fa-check"></i> Export conversations</li>
-                    </ul>
+        <div class="chat-sidebar">
+            <div class="quick-questions">
+                <h4>Quick Questions</h4>
+                <div class="question-buttons">
+                    <button class="question-btn" data-question="What activities did you observe in the video?">
+                        What activities were observed?
+                    </button>
+                    <button class="question-btn" data-question="How many people were visible in the scene?">
+                        How many people were there?
+                    </button>
+                    <button class="question-btn" data-question="Were there any safety concerns or anomalies?">
+                        Any safety concerns?
+                    </button>
+                    <button class="question-btn" data-question="Describe the environment and setting of the video.">
+                        Describe the environment
+                    </button>
+                    <button class="question-btn" data-question="What interactions occurred between people?">
+                        What interactions occurred?
+                    </button>
                 </div>
+            </div>
 
-                <div class="chat-tips">
-                    <h4>Tips for Better Results</h4>
-                    <div class="tip-item">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>Be specific in your questions for more detailed answers</span>
-                    </div>
-                    <div class="tip-item">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>Ask follow-up questions to dive deeper into findings</span>
-                    </div>
-                    <div class="tip-item">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>Upload and analyze a video first for context-aware responses</span>
-                    </div>
-                </div>
+            <div class="chat-features">
+                <h4>Features</h4>
+                <ul>
+                    <li><i class="fas fa-check"></i> Context-aware responses</li>
+                    <li><i class="fas fa-check"></i> Natural language processing</li>
+                    <li><i class="fas fa-check"></i> Conversation memory</li>
+                    <li><i class="fas fa-clock"></i> Voice input (coming soon)</li>
+                </ul>
             </div>
         </div>
     </main>
@@ -207,16 +159,5 @@
 
     <script src="js/app.js"></script>
     <script src="js/chat.js"></script>
-    <script>
-        // Initialize chat when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.VideoAnalysisDashboard) {
-                window.dashboard = new VideoAnalysisDashboard();
-                // Force chat page initialization
-                window.dashboard.currentPage = 'chat';
-                window.dashboard.initializePage('chat');
-            }
-        });
-    </script>
 </body>
 </html>

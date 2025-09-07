@@ -210,6 +210,7 @@
             line-height: 1.6;
         }
 
+        /* Responsive adjustments */
         @media (max-width: 768px) {
             .reports-container {
                 padding: 1rem;
@@ -256,41 +257,29 @@
         </div>
         
         <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="dashboard.html">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Dashboard</span>
-                </a>
+            <li class="nav-item" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
             </li>
-            <li class="nav-item">
-                <a href="live-monitor.html">
-                    <i class="fas fa-broadcast-tower"></i>
-                    <span>Live Monitor</span>
-                </a>
+            <li class="nav-item" data-page="live">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Live Monitor</span>
             </li>
-            <li class="nav-item">
-                <a href="video-analysis.html">
-                    <i class="fas fa-play-circle"></i>
-                    <span>Video Analysis</span>
-                </a>
+            <li class="nav-item" data-page="analysis">
+                <i class="fas fa-play-circle"></i>
+                <span>Video Analysis</span>
             </li>
-            <li class="nav-item">
-                <a href="chat.html">
-                    <i class="fas fa-comments"></i>
-                    <span>AI Chat</span>
-                </a>
+            <li class="nav-item" data-page="chat">
+                <i class="fas fa-comments"></i>
+                <span>AI Chat</span>
             </li>
-            <li class="nav-item active">
-                <a href="reports.html">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Analysis Reports</span>
-                </a>
+            <li class="nav-item active" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Analysis Reports</span>
             </li>
-            <li class="nav-item">
-                <a href="settings.html">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
+            <li class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
             </li>
         </ul>
         
@@ -310,7 +299,7 @@
                 <button class="menu-toggle" id="menuToggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="page-title">Analysis Reports</h1>
+                <h1 class="page-title" id="pageTitle">Analysis Reports</h1>
             </div>
             
             <div class="header-right">
@@ -326,66 +315,64 @@
         </header>
 
         <!-- Analysis Reports Content -->
-        <div class="page-content active" id="reports">
-            <div class="reports-container">
-                <div class="reports-header">
-                    <h1>Analysis Reports</h1>
-                    <div class="reports-actions">
-                        <button class="btn btn-secondary" title="Print">
-                            <i class="fas fa-print"></i>
-                            <span>Print</span>
-                        </button>
-                        <button class="btn-primary" title="Export PDF">
-                            <i class="fas fa-download"></i>
-                            <span>Export PDF</span>
-                        </button>
+        <div class="reports-container">
+            <div class="reports-header">
+                <h1>Analysis Reports</h1>
+                <div class="reports-actions">
+                    <button class="btn btn-secondary" title="Print">
+                        <i class="fas fa-print"></i>
+                        <span>Print</span>
+                    </button>
+                    <button class="btn-primary" title="Export PDF">
+                        <i class="fas fa-download"></i>
+                        <span>Export PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="analysis-report-card">
+                <div class="report-title">
+                    <h2>Video Analysis Report</h2>
+                </div>
+
+                <!-- Summary Statistics -->
+                <div class="report-section">
+                    <h3><i class="fas fa-chart-pie"></i> Summary Statistics</h3>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-label">Total Anomalies Detected</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">High Severity</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Medium Severity</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Analysis Duration</div>
+                            <div class="stat-value">0s</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="analysis-report-card">
-                    <div class="report-title">
-                        <h2>Video Analysis Report</h2>
+                <!-- Detected Anomalies -->
+                <div class="report-section">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Detected Anomalies</h3>
+                    <div class="anomaly-item">
+                        <div class="anomaly-time">2023-11-15 14:32:45</div>
+                        <div class="anomaly-description">Unauthorized person detected in restricted area</div>
+                        <div class="anomaly-severity high">High</div>
                     </div>
+                </div>
 
-                    <!-- Summary Statistics -->
-                    <div class="report-section">
-                        <h3><i class="fas fa-chart-pie"></i> Summary Statistics</h3>
-                        <div class="stats-row">
-                            <div class="stat-box">
-                                <div class="stat-label">Total Anomalies Detected</div>
-                                <div class="stat-value">0</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label">High Severity</div>
-                                <div class="stat-value">0</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Medium Severity</div>
-                                <div class="stat-value">0</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Analysis Duration</div>
-                                <div class="stat-value">0s</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Detected Anomalies -->
-                    <div class="report-section">
-                        <h3><i class="fas fa-exclamation-triangle"></i> Detected Anomalies</h3>
-                        <div class="anomaly-item">
-                            <div class="anomaly-time">2023-11-15 14:32:45</div>
-                            <div class="anomaly-description">Unauthorized person detected in restricted area</div>
-                            <div class="anomaly-severity high">High</div>
-                        </div>
-                    </div>
-
-                    <!-- Analysis Summary -->
-                    <div class="report-section">
-                        <h3><i class="fas fa-file-alt"></i> Analysis Summary</h3>
-                        <div class="summary-content">
-                            <p>No analysis summary available. Run a video analysis first.</p>
-                        </div>
+                <!-- Analysis Summary -->
+                <div class="report-section">
+                    <h3><i class="fas fa-file-alt"></i> Analysis Summary</h3>
+                    <div class="summary-content">
+                        <p>No analysis summary available. Run a video analysis first.</p>
                     </div>
                 </div>
             </div>
@@ -404,16 +391,5 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="js/app.js"></script>
-    <script>
-        // Initialize reports when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.VideoAnalysisDashboard) {
-                window.dashboard = new VideoAnalysisDashboard();
-                // Force reports page initialization
-                window.dashboard.currentPage = 'reports';
-                window.dashboard.initializePage('reports');
-            }
-        });
-    </script>
 </body>
 </html>
