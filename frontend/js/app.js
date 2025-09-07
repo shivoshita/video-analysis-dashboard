@@ -348,7 +348,7 @@ class VideoAnalysisDashboard {
                 .replace(/={30}/g, '<hr style="border: 1px solid #475569; margin: 10px 0;">')
                 .replace(/-{30}/g, '<div style="border-bottom: 1px dashed #64748b; margin: 8px 0;"></div>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/Ã¢â‚¬Â¢ /g, '&bull; ');
+                .replace(/ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ /g, '&bull; ');
             
             analysisReport.innerHTML = formattedReport;
             
