@@ -1,4 +1,4 @@
-// Chat JavaScript Module - Fixed duplicate event listeners
+// Chat JavaScript Module - Fixed duplicate video notifications
 class ChatModule {
     constructor(dashboard) {
         this.dashboard = dashboard;
@@ -7,6 +7,7 @@ class ChatModule {
         this.hasLiveContext = false;
         this.hasUploadedContext = false;
         this.initialized = false;
+        this.lastVideoId = null; // Track the last video ID to prevent duplicates
         
         this.initializeElements();
         this.setupEventListeners();
@@ -324,21 +325,56 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
         }
     }
 
-    // Method to update chat when new video is analyzed (uploaded video)
+    // Method to update chat when new video is analyzed (uploaded video) - FIXED VERSION
     updateVideoContext(videoContext) {
-        this.hasUploadedContext = true;
+        // Create a unique identifier for this video based on its properties
+        const currentVideoId = this.generateVideoId(videoContext);
         
-        // Add a system message when new video context is available
-        const contextMessage = videoContext.type === 'anomaly' 
-            ? 'A new video has been analyzed for anomalies. You can now ask me questions about the anomaly detection results!'
-            : 'A new video has been analyzed. You can now ask me questions about the video content!';
+        // Only show notification if this is a genuinely new video
+        if (this.lastVideoId !== currentVideoId) {
+            this.hasUploadedContext = true;
+            this.lastVideoId = currentVideoId;
+            
+            // Add a system message when new video context is available
+            const contextMessage = videoContext.type === 'anomaly' 
+                ? 'A new video has been analyzed for anomalies. You can now ask me questions about the anomaly detection results!'
+                : 'A new video has been analyzed. You can now ask me questions about the video content!';
+            
+            this.addMessageToUI('assistant', contextMessage);
+            
+            console.log('New video analyzed, notification added to chat');
+        } else {
+            console.log('Same video being displayed again, no notification added');
+        }
         
-        this.addMessageToUI('assistant', contextMessage);
-        
-        // Refresh welcome message if no chat history
-        if (this.chatHistory.length === 0) {
+        // Refresh welcome message if no chat history (only if it's a new video)
+        if (this.chatHistory.length === 0 && this.lastVideoId === currentVideoId) {
             this.showWelcomeMessage();
         }
+    }
+
+    // Helper method to generate a unique ID for a video based on its content/properties
+    generateVideoId(videoContext) {
+        if (!videoContext) return null;
+        
+        // Create a hash-like ID based on video properties
+        const videoProps = [
+            videoContext.filename || '',
+            videoContext.duration || '',
+            videoContext.timestamp || Date.now(),
+            videoContext.type || '',
+            JSON.stringify(videoContext.analysis || {})
+        ].join('|');
+        
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < videoProps.length; i++) {
+            const char = videoProps.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        
+        return hash.toString();
     }
 
     // Method to update chat when live video becomes available
@@ -370,6 +406,13 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
                 this.showWelcomeMessage();
             }
         }, 1000);
+    }
+
+    // Method to manually reset video context (useful when user wants to analyze a new video)
+    resetVideoContext() {
+        this.lastVideoId = null;
+        this.hasUploadedContext = false;
+        console.log('Video context reset - next video will trigger notification');
     }
 
     // Method to get current message count
@@ -410,7 +453,8 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
             hasLive: liveStatus.active,
             hasUploaded: this.hasUploadedContext,
             liveActive: liveStatus.active,
-            canChat: liveStatus.active || this.hasUploadedContext
+            canChat: liveStatus.active || this.hasUploadedContext,
+            lastVideoId: this.lastVideoId
         };
     }
 }
@@ -520,6 +564,18 @@ if (typeof window !== 'undefined') {
                     if (this.chatModule) {
                         this.chatModule.updateVideoContext(result);
                     }
+                };
+            }
+            
+            // Also add a method to reset video context when starting a new video upload
+            const originalHandleVideoUpload = window.dashboard.handleVideoUpload;
+            if (originalHandleVideoUpload) {
+                window.dashboard.handleVideoUpload = function(event) {
+                    // Reset the video context before processing new video
+                    if (this.chatModule) {
+                        this.chatModule.resetVideoContext();
+                    }
+                    return originalHandleVideoUpload.call(this, event);
                 };
             }
         }
