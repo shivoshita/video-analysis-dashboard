@@ -578,28 +578,40 @@ Keep response brief and focused on WHAT happened."""
             return f"Error detecting anomalies in live feed: {str(e)}"
 
     def process_chat_question(self, question, video_context, context_source=None):
-        """Process chat question with video context (supports both uploaded and live video)"""
+        """IMPROVED: Process chat question with video context - Better responses, no repeated apologies"""
         try:
-            if not video_context:
-                return "No video context available. Please analyze a video first."
+            if not video_context or not video_context.get('summary'):
+                return "I don't have any video analysis context available. Please analyze a video first so I can answer questions about it."
             
-            # Create context-aware prompt with source information
-            context_type = "live video feed" if context_source == "live" else "uploaded video"
+            # Extract video summary/content
+            video_summary = video_context.get('summary', '')
+            context_type = context_source or video_context.get('source', 'unknown')
             
-            context_prompt = f"""You are an AI assistant helping analyze a {context_type}. Here's what we know:
+            # Create enhanced context-aware prompt
+            if context_type == 'live' or context_type == 'live_stopped':
+                context_description = "live video feed" if context_type == 'live' else "recently stopped live video monitoring"
+            else:
+                context_description = "uploaded video"
+            
+            # IMPROVED PROMPT - More direct, less apologetic
+            enhanced_prompt = f"""You are a helpful video analysis assistant. Answer the user's question based on the video analysis provided.
 
-VIDEO ANALYSIS CONTEXT ({context_type.upper()}):
-{video_context.get('summary', 'No summary available')}
+ANALYZED VIDEO CONTENT ({context_description.upper()}):
+{video_summary}
 
-USER QUESTION: {question}
+USER QUESTION: "{question}"
 
-Please answer the user's question based on the video analysis context provided. Be conversational and helpful. 
+INSTRUCTIONS:
+- Answer the user's question directly and helpfully
+- Base your response on the video analysis provided
+- Be conversational and informative
+- If the question asks about something not visible in the analysis, explain what you CAN tell them from the available information
+- Don't start with apologies or disclaimers
+- Focus on being helpful and answering what you can
 
-{"Since this is from a live feed, note that the analysis is based on recent frames and may represent just a snapshot of ongoing activity." if context_source == "live" else "This analysis is from the complete uploaded video."}
+Answer the user's question now:"""
 
-If the question asks about something not visible in the analyzed frames, let them know the limitation while providing what information you can from the analysis."""
-
-            # Prepare payload for VILA (simplified for chat)
+            # Prepare simplified payload for chat response
             payload = {
                 "model": "nvidia/vila",
                 "messages": [
@@ -608,20 +620,82 @@ If the question asks about something not visible in the analyzed frames, let the
                         "content": [
                             {
                                 "type": "text",
-                                "text": context_prompt
+                                "text": enhanced_prompt
                             }
                         ]
                     }
                 ],
                 "max_tokens": 400,
-                "temperature": 0.5,
+                "temperature": 0.4,
                 "stream": False
             }
             
-            print(f"Processing chat question: {question} (Context: {context_source or 'uploaded'})")
+            print(f"Processing chat question: '{question}' with context from {context_description}")
+            
+            # Make API request
             response = self.make_vila_request(payload)
             
-            return response
+            # Clean up response - remove common apologetic starts
+            if response:
+                # Remove common unhelpful response patterns
+                cleanup_patterns = [
+                    "Sorry, I encountered an error processing your message.",
+                    "Sorry, I cannot process",
+                    "I apologize, but",
+                    "I'm sorry, but",
+                    "Unfortunately, I cannot"
+                ]
+                
+                for pattern in cleanup_patterns:
+                    if response.startswith(pattern):
+                        # If it's just an error message, provide a better fallback
+                        response = self._generate_fallback_response(question, video_summary, context_description)
+                        break
+                
+                # If response is too short or generic, enhance it
+                if len(response.strip()) < 20:
+                    response = self._generate_fallback_response(question, video_summary, context_description)
+                    
+                return response
+            else:
+                return self._generate_fallback_response(question, video_summary, context_description)
             
         except Exception as e:
-            return f"Error processing your question: {str(e)}"
+            print(f"Error processing chat question: {e}")
+            return self._generate_fallback_response(question, video_context.get('summary', ''), context_source or 'video')
+
+    def _generate_fallback_response(self, question, video_summary, context_type):
+        """Generate a helpful fallback response when API fails"""
+        try:
+            # Try to extract relevant information from the summary
+            summary_lines = video_summary.split('\n')
+            
+            # Look for relevant content
+            relevant_content = []
+            question_lower = question.lower()
+            
+            # Common question patterns and what to look for
+            if any(word in question_lower for word in ['people', 'person', 'individuals', 'how many']):
+                for line in summary_lines:
+                    if any(word in line.lower() for word in ['people', 'person', 'individual', 'man', 'woman']):
+                        relevant_content.append(line.strip())
+            
+            elif any(word in question_lower for word in ['doing', 'activity', 'activities', 'action']):
+                for line in summary_lines:
+                    if any(word in line.lower() for word in ['doing', 'activity', 'moving', 'action', 'performing']):
+                        relevant_content.append(line.strip())
+            
+            elif any(word in question_lower for word in ['where', 'location', 'setting', 'environment']):
+                for line in summary_lines:
+                    if any(word in line.lower() for word in ['setting', 'environment', 'location', 'room', 'area']):
+                        relevant_content.append(line.strip())
+            
+            if relevant_content:
+                return f"Based on the {context_type} analysis, here's what I can tell you: " + ". ".join(relevant_content[:2])
+            else:
+                # Generic but helpful response
+                summary_excerpt = '. '.join(summary_lines[:3]) if len(summary_lines) >= 3 else video_summary[:200]
+                return f"Based on the {context_type} analysis: {summary_excerpt}. Feel free to ask me more specific questions about what you observed!"
+        
+        except Exception as e:
+            return f"I have analysis data from the {context_type}, but I'm having trouble processing your specific question right now. Could you try rephrasing your question or asking about something more general?"

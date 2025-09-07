@@ -33,7 +33,8 @@ app_state = {
     'frame_accumulator': [],
     'live_reports': [],
     'video_context': None,
-    'live_video_context': None,  # Separate context for live video
+    'live_video_context': None,
+    'last_processed_context': None,  # NEW: Store the last processed context (live or uploaded)
     'chat_history': [],
     'anomaly_notifications': [],
     'system_stats': {
@@ -144,11 +145,18 @@ def analyze_video():
             result = video_processor.analyze_video(upload_path)
             
             # Store context for chat
-            app_state['video_context'] = {
+            video_context = {
                 'type': 'analysis',
+                'source': 'uploaded',
                 'summary': result['summary'],
-                'frames': result.get('key_frames', [])
+                'frames': result.get('key_frames', []),
+                'filename': file.filename,
+                'timestamp': datetime.now().isoformat()
             }
+            
+            app_state['video_context'] = video_context
+            # IMPORTANT: Update last processed context
+            app_state['last_processed_context'] = video_context
             
             # Clean up
             if os.path.exists(upload_path):
@@ -194,11 +202,18 @@ def detect_anomalies():
             result = video_processor.detect_anomalies(upload_path)
             
             # Store context for chat
-            app_state['video_context'] = {
+            video_context = {
                 'type': 'anomaly',
+                'source': 'uploaded',
                 'summary': result['summary'],
-                'frames': result.get('key_frames', [])
+                'frames': result.get('key_frames', []),
+                'filename': file.filename,
+                'timestamp': datetime.now().isoformat()
             }
+            
+            app_state['video_context'] = video_context
+            # IMPORTANT: Update last processed context
+            app_state['last_processed_context'] = video_context
             
             # Update incident count if anomalies detected
             if not result['summary'].lower().startswith('no significant anomalies'):
@@ -277,14 +292,26 @@ def stop_live_monitoring():
         # Stop workers first
         stop_live_workers()
         
+        # IMPORTANT: Before stopping, preserve the live video context as last processed
+        if app_state['live_video_context']:
+            # Convert live context to a permanent context
+            last_live_context = {
+                'type': app_state['live_video_context']['type'],
+                'source': 'live_stopped',
+                'summary': app_state['live_video_context']['summary'],
+                'timestamp': app_state['live_video_context']['timestamp'],
+                'stopped_at': datetime.now().isoformat()
+            }
+            app_state['last_processed_context'] = last_live_context
+        
         # Stop video processor
         video_processor.stop_live_tracking()
         
-        # Reset state
+        # Reset live state but preserve last processed context
         app_state['live_tracking_active'] = False
         app_state['live_cap'] = None
         app_state['current_live_frame'] = None
-        app_state['live_video_context'] = None
+        app_state['live_video_context'] = None  # Clear current live context
         
         return jsonify({
             'success': True,
@@ -341,14 +368,19 @@ def analyze_live_feed():
             'content': result,
             'timestamp': datetime.now().isoformat()
         }
-        app_state['live_reports'].insert(0, report_entry)  # Add to front
+        app_state['live_reports'].insert(0, report_entry)
         
         # Update live video context for chat
-        app_state['live_video_context'] = {
+        live_context = {
             'type': 'live_analysis',
+            'source': 'live',
             'summary': result,
             'timestamp': datetime.now().isoformat()
         }
+        
+        app_state['live_video_context'] = live_context
+        # IMPORTANT: Also update as last processed context
+        app_state['last_processed_context'] = live_context
         
         # Keep only last 50 reports
         app_state['live_reports'] = app_state['live_reports'][:50]
@@ -380,7 +412,7 @@ def check_live_anomalies():
             'content': result,
             'timestamp': datetime.now().isoformat()
         }
-        app_state['live_reports'].insert(0, report_entry)  # Add to front
+        app_state['live_reports'].insert(0, report_entry)
         
         # Check if anomalies detected
         anomalies_detected = not result.lower().startswith('no significant anomalies')
@@ -396,12 +428,17 @@ def check_live_anomalies():
             })
         
         # Update live video context for chat
-        app_state['live_video_context'] = {
+        live_context = {
             'type': 'live_anomaly',
+            'source': 'live',
             'summary': result,
             'timestamp': datetime.now().isoformat(),
             'anomalies_detected': anomalies_detected
         }
+        
+        app_state['live_video_context'] = live_context
+        # IMPORTANT: Also update as last processed context
+        app_state['last_processed_context'] = live_context
         
         # Keep only last 50 reports
         app_state['live_reports'] = app_state['live_reports'][:50]
@@ -430,7 +467,7 @@ def get_live_reports():
 
 @app.route('/api/chat/message', methods=['POST'])
 def process_chat_message():
-    """Process chat message with AI"""
+    """Process chat message with AI - IMPROVED VERSION"""
     try:
         data = request.get_json()
         if not data or 'message' not in data:
@@ -440,30 +477,37 @@ def process_chat_message():
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
         
-        # Check for video context (uploaded video or live video)
+        # Determine which context to use with improved priority logic
         video_context = None
         context_source = None
         
-        # Prioritize live video context if available and recent (within last 5 minutes)
-        if (app_state['live_video_context'] and 
-            app_state['live_tracking_active']):
-            
-            live_timestamp = datetime.fromisoformat(app_state['live_video_context']['timestamp'])
-            time_diff = (datetime.now() - live_timestamp).total_seconds()
-            
-            if time_diff < 300:  # Within 5 minutes
-                video_context = app_state['live_video_context']
-                context_source = 'live'
+        # Priority 1: Active live video context (if live monitoring is running)
+        if (app_state['live_tracking_active'] and 
+            app_state['live_video_context']):
+            video_context = app_state['live_video_context']
+            context_source = 'live'
         
-        # Fall back to uploaded video context
-        if not video_context and app_state['video_context']:
+        # Priority 2: Last processed context (covers stopped live or uploaded videos)
+        elif app_state['last_processed_context']:
+            video_context = app_state['last_processed_context']
+            context_source = video_context.get('source', 'unknown')
+        
+        # Priority 3: Any uploaded video context
+        elif app_state['video_context']:
             video_context = app_state['video_context']
             context_source = 'uploaded'
         
+        # Generate response
         if not video_context:
-            response = "No video has been analyzed yet. Please either:\n• Upload and analyze a video in the 'Video Analysis' section, or\n• Start live monitoring and analyze the live feed\n\nThen come back to ask questions about it!"
+            response = """I don't have any video analysis context available yet. To get started:
+
+• Upload and analyze a video in the 'Video Analysis' section, or
+• Start live monitoring and analyze the live feed
+
+Once you have processed some video content, I'll be able to answer questions about it!"""
+            context_source = None
         else:
-            # Process with video context
+            # Process with video context using improved prompt
             response = video_processor.process_chat_question(
                 user_message, 
                 video_context,
@@ -479,7 +523,8 @@ def process_chat_message():
         app_state['chat_history'].append({
             'role': 'assistant',
             'content': response,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'context_source': context_source
         })
         
         # Keep only last 20 exchanges (40 messages)
@@ -494,6 +539,7 @@ def process_chat_message():
         })
         
     except Exception as e:
+        print(f"Chat processing error: {e}")
         return jsonify({
             'error': f'Chat processing failed: {str(e)}'
         }), 500
@@ -513,6 +559,25 @@ def clear_chat_history():
     return jsonify({
         'success': True,
         'message': 'Chat history cleared',
+        'timestamp': datetime.now().isoformat()
+    })
+
+# ===== CONTEXT STATUS ENDPOINT =====
+
+@app.route('/api/chat/context', methods=['GET'])
+def get_chat_context_status():
+    """Get current chat context status for frontend"""
+    return jsonify({
+        'has_live_active': app_state['live_tracking_active'],
+        'has_live_context': app_state['live_video_context'] is not None,
+        'has_uploaded_context': app_state['video_context'] is not None,
+        'has_last_processed': app_state['last_processed_context'] is not None,
+        'current_context_source': (
+            'live' if app_state['live_tracking_active'] and app_state['live_video_context'] else
+            app_state['last_processed_context'].get('source') if app_state['last_processed_context'] else
+            'uploaded' if app_state['video_context'] else
+            None
+        ),
         'timestamp': datetime.now().isoformat()
     })
 
@@ -585,11 +650,14 @@ def start_live_workers():
                             app_state['live_reports'] = app_state['live_reports'][:50]
                             
                             # Update live video context
-                            app_state['live_video_context'] = {
+                            live_context = {
                                 'type': 'live_analysis',
+                                'source': 'live',
                                 'summary': result,
                                 'timestamp': datetime.now().isoformat()
                             }
+                            app_state['live_video_context'] = live_context
+                            app_state['last_processed_context'] = live_context
                     
                     last_analysis = current_time
                 
@@ -638,12 +706,15 @@ def start_live_workers():
                             })
                             
                             # Update live video context
-                            app_state['live_video_context'] = {
+                            live_context = {
                                 'type': 'live_anomaly',
+                                'source': 'live',
                                 'summary': result,
                                 'timestamp': datetime.now().isoformat(),
                                 'anomalies_detected': True
                             }
+                            app_state['live_video_context'] = live_context
+                            app_state['last_processed_context'] = live_context
                     
                     last_check = current_time
                 

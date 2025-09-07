@@ -1,4 +1,4 @@
-// Chat JavaScript Module - Fixed duplicate video notifications
+// Chat JavaScript Module - IMPROVED with better context handling
 class ChatModule {
     constructor(dashboard) {
         this.dashboard = dashboard;
@@ -7,11 +7,13 @@ class ChatModule {
         this.hasLiveContext = false;
         this.hasUploadedContext = false;
         this.initialized = false;
-        this.lastVideoId = null; // Track the last video ID to prevent duplicates
+        this.lastVideoId = null;
+        this.currentContextSource = null; // Track current context source
         
         this.initializeElements();
         this.setupEventListeners();
         this.loadChatHistory();
+        this.startContextMonitoring(); // Monitor context changes
     }
 
     initializeElements() {
@@ -21,10 +23,10 @@ class ChatModule {
         this.chatMessages = document.getElementById('chatMessages');
         this.questionBtns = document.querySelectorAll('.question-btn');
         this.voiceInputBtn = document.getElementById('voiceInputBtn');
+        this.contextStatus = document.getElementById('contextStatus'); // New element for context display
     }
 
     setupEventListeners() {
-        // Prevent duplicate event listeners
         if (this.initialized) return;
 
         if (this.sendBtn) {
@@ -56,7 +58,7 @@ class ChatModule {
             });
         }
 
-        // Quick question buttons - enhanced with live context awareness
+        // Quick question buttons - enhanced with better context awareness
         this.questionBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -78,6 +80,102 @@ class ChatModule {
         }
 
         this.initialized = true;
+    }
+
+    startContextMonitoring() {
+        // Monitor context status every 3 seconds
+        setInterval(() => {
+            this.checkContextStatus();
+        }, 3000);
+    }
+
+    async checkContextStatus() {
+        try {
+            const response = await this.dashboard.apiRequest('/chat/context');
+            
+            if (response) {
+                const newContextSource = response.current_context_source;
+                
+                // Update context indicators if source changed
+                if (this.currentContextSource !== newContextSource) {
+                    this.currentContextSource = newContextSource;
+                    this.updateContextDisplay();
+                    
+                    // Show context change notification only if there was a previous context
+                    if (this.currentContextSource && newContextSource !== this.currentContextSource) {
+                        this.showContextChangeNotification(newContextSource);
+                    }
+                }
+                
+                // Update internal state
+                this.hasLiveContext = response.has_live_context;
+                this.hasUploadedContext = response.has_uploaded_context;
+            }
+            
+        } catch (error) {
+            // Silently handle context check errors to avoid spam
+            console.debug('Context check failed:', error);
+        }
+    }
+
+    updateContextDisplay() {
+        // Update context status display in chat interface
+        if (this.contextStatus) {
+            let statusHtml = '';
+            
+            if (this.currentContextSource === 'live') {
+                statusHtml = `
+                    <div class="context-indicator active live">
+                        <i class="fas fa-broadcast-tower"></i>
+                        <span>Live Video Active</span>
+                    </div>
+                `;
+            } else if (this.currentContextSource === 'live_stopped') {
+                statusHtml = `
+                    <div class="context-indicator available stopped">
+                        <i class="fas fa-video-slash"></i>
+                        <span>Last Live Session</span>
+                    </div>
+                `;
+            } else if (this.currentContextSource === 'uploaded') {
+                statusHtml = `
+                    <div class="context-indicator available uploaded">
+                        <i class="fas fa-video"></i>
+                        <span>Uploaded Video</span>
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div class="context-indicator inactive">
+                        <i class="fas fa-question-circle"></i>
+                        <span>No Video Context</span>
+                    </div>
+                `;
+            }
+            
+            this.contextStatus.innerHTML = statusHtml;
+        }
+    }
+
+    showContextChangeNotification(newSource) {
+        let message = '';
+        switch (newSource) {
+            case 'live':
+                message = 'Now using live video context for chat';
+                break;
+            case 'live_stopped':
+                message = 'Now using last live session for chat';
+                break;
+            case 'uploaded':
+                message = 'Now using uploaded video for chat';
+                break;
+            default:
+                message = 'Video context cleared';
+        }
+        
+        if (message) {
+            this.dashboard.showToast(message, 'info');
+        }
     }
 
     async sendMessage() {
@@ -112,7 +210,7 @@ class ChatModule {
                 // Add assistant response to UI with context indicator
                 this.addMessageToUI('assistant', response.response, response.context_source);
                 
-                // Update local history (but don't duplicate)
+                // Update local history
                 this.chatHistory.push(
                     { role: 'user', content: message, timestamp: new Date().toISOString() },
                     { role: 'assistant', content: response.response, timestamp: new Date().toISOString(), context_source: response.context_source }
@@ -126,7 +224,7 @@ class ChatModule {
             this.removeTypingIndicator(typingIndicator);
             
             console.error('Chat message failed:', error);
-            this.addMessageToUI('assistant', 'Sorry, I encountered an error processing your message. Please try again.');
+            this.addMessageToUI('assistant', 'I encountered an error processing your message. Please try again.');
             this.dashboard.showToast('Failed to send message: ' + error.message, 'error');
         }
     }
@@ -147,14 +245,33 @@ class ChatModule {
         // Add context indicator for assistant messages
         let contextIndicator = '';
         if (role === 'assistant' && contextSource) {
-            const contextIcon = contextSource === 'live' ? 
-                '<i class="fas fa-broadcast-tower" style="color: #ef4444;"></i>' : 
-                '<i class="fas fa-video" style="color: #06b6d4;"></i>';
-            const contextText = contextSource === 'live' ? 'Live Video' : 'Uploaded Video';
+            let contextIcon, contextText, contextColor;
+            
+            switch (contextSource) {
+                case 'live':
+                    contextIcon = '<i class="fas fa-broadcast-tower"></i>';
+                    contextText = 'Live Video';
+                    contextColor = '#ef4444';
+                    break;
+                case 'live_stopped':
+                    contextIcon = '<i class="fas fa-video-slash"></i>';
+                    contextText = 'Last Live Session';
+                    contextColor = '#f59e0b';
+                    break;
+                case 'uploaded':
+                    contextIcon = '<i class="fas fa-video"></i>';
+                    contextText = 'Uploaded Video';
+                    contextColor = '#06b6d4';
+                    break;
+                default:
+                    contextIcon = '<i class="fas fa-question-circle"></i>';
+                    contextText = 'General';
+                    contextColor = '#64748b';
+            }
             
             contextIndicator = `
                 <div class="context-indicator" style="font-size: 0.8em; color: #64748b; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
-                    ${contextIcon}
+                    <span style="color: ${contextColor};">${contextIcon}</span>
                     <span>Based on ${contextText}</span>
                 </div>
             `;
@@ -258,40 +375,78 @@ class ChatModule {
     showWelcomeMessage() {
         if (!this.chatMessages) return;
 
-        // Check if we have live monitoring or uploaded video
-        const liveStatus = this.dashboard.liveMonitor ? this.dashboard.liveMonitor.getStatus() : { active: false };
-        const hasVideo = this.dashboard.videoContext !== null;
-
+        // Check current context status
+        const hasContext = this.currentContextSource !== null;
+        
         let contextInfo = '';
-        if (liveStatus.active) {
+        let suggestions = '';
+        
+        if (this.currentContextSource === 'live') {
             contextInfo = `
                 <div class="context-status live-active" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; margin: 10px 0;">
                     <i class="fas fa-broadcast-tower" style="color: #ef4444;"></i>
-                    <strong>Live Monitoring Active</strong> - Ask questions about the live video feed!
+                    <strong>Live Monitoring Active</strong> - I can answer questions about the current live video feed!
                 </div>
             `;
-        } else if (hasVideo) {
+            suggestions = `
+**Try asking me:**
+• What do you see in the current video?
+• How many people are visible?
+• What activities are happening?
+• Are there any safety concerns?
+• Describe the current scene
+            `;
+        } else if (this.currentContextSource === 'live_stopped') {
+            contextInfo = `
+                <div class="context-status live-stopped" style="background: #fef3c7; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px; margin: 10px 0;">
+                    <i class="fas fa-video-slash" style="color: #f59e0b;"></i>
+                    <strong>Last Live Session Available</strong> - I can answer questions about the recent live monitoring session!
+                </div>
+            `;
+            suggestions = `
+**Ask me about the last live session:**
+• What did you observe in the live feed?
+• Were there any anomalies detected?
+• How many people were seen?
+• What was the environment like?
+            `;
+        } else if (this.currentContextSource === 'uploaded') {
             contextInfo = `
                 <div class="context-status video-available" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px; margin: 10px 0;">
                     <i class="fas fa-video" style="color: #06b6d4;"></i>
-                    <strong>Video Available</strong> - Ask questions about the analyzed video!
+                    <strong>Video Available</strong> - I can answer questions about the uploaded video analysis!
                 </div>
+            `;
+            suggestions = `
+**Ask me about the video:**
+• What happened in the video?
+• How many people were in the scene?
+• What was the setting like?
+• Were there any notable events?
+• Can you summarize what you saw?
+            `;
+        } else {
+            suggestions = `
+**To get started:**
+• Upload and analyze a video in the "Video Analysis" section
+• Or start live monitoring in the "Live Monitor" section
+• Then come back here to ask questions about it!
+
+**You can ask me questions like:**
+• What activities do you observe?
+• How many people are in the scene?
+• Are there any safety concerns?
+• Describe the environment and setting
             `;
         }
 
         const welcomeMessage = `Hello! I'm your AI assistant for video analysis. I can help you understand and discuss video content.
 
-${contextInfo ? contextInfo + '\n' : ''}**How to get started:**
-${liveStatus.active ? '• Ask about the current live video feed' : '• Upload and analyze a video in the "Video Analysis" section'}
-${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" section' : ''}
-• Then come back here to ask questions about it!
+${contextInfo}
 
-**Example questions:**
-• What activities do you observe?
-• How many people are in the scene?
-• Are there any safety concerns?
-• Describe the environment and setting
-• What interactions are happening?`;
+${suggestions}
+
+Feel free to ask me anything about the video content in natural language!`;
 
         this.chatMessages.innerHTML = `
             <div class="message assistant">
@@ -325,65 +480,46 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
         }
     }
 
-    // Method to update chat when new video is analyzed (uploaded video) - FIXED VERSION
+    // UPDATED: Better video context handling
     updateVideoContext(videoContext) {
-        // Create a unique identifier for this video based on its properties
+        // Check if this is genuinely new content
         const currentVideoId = this.generateVideoId(videoContext);
         
-        // Only show notification if this is a genuinely new video
         if (this.lastVideoId !== currentVideoId) {
             this.hasUploadedContext = true;
             this.lastVideoId = currentVideoId;
+            this.currentContextSource = 'uploaded';
             
-            // Add a system message when new video context is available
+            // Add context switch notification
             const contextMessage = videoContext.type === 'anomaly' 
-                ? 'A new video has been analyzed for anomalies. You can now ask me questions about the anomaly detection results!'
-                : 'A new video has been analyzed. You can now ask me questions about the video content!';
+                ? 'New video analyzed for anomalies! Ask me questions about what was detected.'
+                : 'New video analyzed! Ask me questions about the video content.';
             
             this.addMessageToUI('assistant', contextMessage);
             
-            console.log('New video analyzed, notification added to chat');
-        } else {
-            console.log('Same video being displayed again, no notification added');
+            // Update context display
+            this.updateContextDisplay();
+            
+            console.log('New video analyzed, chat context updated');
         }
         
-        // Refresh welcome message if no chat history (only if it's a new video)
-        if (this.chatHistory.length === 0 && this.lastVideoId === currentVideoId) {
+        // Refresh welcome message if no chat history
+        if (this.chatHistory.length === 0) {
             this.showWelcomeMessage();
         }
     }
 
-    // Helper method to generate a unique ID for a video based on its content/properties
-    generateVideoId(videoContext) {
-        if (!videoContext) return null;
-        
-        // Create a hash-like ID based on video properties
-        const videoProps = [
-            videoContext.filename || '',
-            videoContext.duration || '',
-            videoContext.timestamp || Date.now(),
-            videoContext.type || '',
-            JSON.stringify(videoContext.analysis || {})
-        ].join('|');
-        
-        // Simple hash function
-        let hash = 0;
-        for (let i = 0; i < videoProps.length; i++) {
-            const char = videoProps.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        
-        return hash.toString();
-    }
-
-    // Method to update chat when live video becomes available
+    // Method for live video context updates
     updateLiveVideoContext(liveContext) {
         this.hasLiveContext = true;
+        this.currentContextSource = 'live';
+        
+        // Update context display
+        this.updateContextDisplay();
         
         // Only show message if this is the first time live monitoring starts
         if (liveContext.type === 'live_video') {
-            const contextMessage = 'Live video monitoring is now active! You can ask me questions about what\'s currently happening in the live video feed.';
+            const contextMessage = 'Live video monitoring is active! Ask me questions about what\'s currently happening.';
             this.addMessageToUI('assistant', contextMessage);
         }
         
@@ -396,11 +532,15 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
     // Method to handle when live monitoring stops
     updateLiveMonitoringStopped() {
         this.hasLiveContext = false;
+        this.currentContextSource = 'live_stopped'; // Keep the stopped context available
         
-        const contextMessage = 'Live video monitoring has stopped. I can still answer questions about previously uploaded videos if available.';
+        // Update context display
+        this.updateContextDisplay();
+        
+        const contextMessage = 'Live monitoring stopped. I can still answer questions about the last live session or any uploaded videos.';
         this.addMessageToUI('assistant', contextMessage);
         
-        // Refresh welcome message
+        // Refresh welcome message after a short delay
         setTimeout(() => {
             if (this.chatHistory.length === 0) {
                 this.showWelcomeMessage();
@@ -408,23 +548,42 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
         }, 1000);
     }
 
-    // Method to manually reset video context (useful when user wants to analyze a new video)
+    generateVideoId(videoContext) {
+        if (!videoContext) return null;
+        
+        const videoProps = [
+            videoContext.filename || '',
+            videoContext.duration || '',
+            videoContext.timestamp || Date.now(),
+            videoContext.type || '',
+            JSON.stringify(videoContext.analysis || {})
+        ].join('|');
+        
+        let hash = 0;
+        for (let i = 0; i < videoProps.length; i++) {
+            const char = videoProps.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        
+        return hash.toString();
+    }
+
     resetVideoContext() {
         this.lastVideoId = null;
         this.hasUploadedContext = false;
         console.log('Video context reset - next video will trigger notification');
     }
 
-    // Method to get current message count
     getMessageCount() {
         return this.chatHistory.length;
     }
 
-    // Method to export chat history
     exportChatHistory() {
         const chatData = {
             exported_at: new Date().toISOString(),
             message_count: this.chatHistory.length,
+            current_context_source: this.currentContextSource,
             has_live_context: this.hasLiveContext,
             has_uploaded_context: this.hasUploadedContext,
             messages: this.chatHistory
@@ -445,21 +604,18 @@ ${!liveStatus.active ? '• Or start live monitoring in the "Live Monitor" secti
         this.dashboard.showToast('Chat history exported', 'success');
     }
 
-    // Method to check current context availability
     getContextStatus() {
-        const liveStatus = this.dashboard.liveMonitor ? this.dashboard.liveMonitor.getStatus() : { active: false };
-        
         return {
-            hasLive: liveStatus.active,
+            currentSource: this.currentContextSource,
+            hasLive: this.hasLiveContext,
             hasUploaded: this.hasUploadedContext,
-            liveActive: liveStatus.active,
-            canChat: liveStatus.active || this.hasUploadedContext,
+            canChat: this.currentContextSource !== null,
             lastVideoId: this.lastVideoId
         };
     }
 }
 
-// CSS for context indicators and enhanced styling
+// Enhanced CSS for better context indicators
 const enhancedChatCSS = `
 .context-indicator {
     font-size: 0.8em;
@@ -472,6 +628,24 @@ const enhancedChatCSS = `
     background: #f8fafc;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
+}
+
+.context-indicator.active {
+    background: #dcfdf4;
+    border-color: #10b981;
+    color: #047857;
+}
+
+.context-indicator.available {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.context-indicator.inactive {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
 }
 
 .context-status {
@@ -488,6 +662,11 @@ const enhancedChatCSS = `
 .context-status.live-active {
     background: #fef2f2;
     border-color: #fecaca;
+}
+
+.context-status.live-stopped {
+    background: #fef3c7;
+    border-color: #fed7aa;
 }
 
 .context-status i {
@@ -538,6 +717,16 @@ const enhancedChatCSS = `
 .message-content a:hover {
     color: var(--accent-hover);
 }
+
+/* Context status display at top of chat */
+#contextStatus {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 8px 12px;
+}
 `;
 
 // Inject CSS only once
@@ -548,15 +737,14 @@ if (typeof document !== 'undefined' && !document.getElementById('chat-enhanced-s
     document.head.appendChild(style);
 }
 
-// Extend the main dashboard class to include chat - prevent duplicate initialization
+// Initialize chat module
 if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Only initialize once
         if (window.dashboard && !window.dashboard.chatModule) {
             window.dashboard.chatModule = new ChatModule(window.dashboard);
-            console.log('ChatModule initialized');
+            console.log('Enhanced ChatModule initialized');
             
-            // Override video analysis to update chat context
+            // Enhanced integration with video analysis
             const originalDisplayResults = window.dashboard.displayVideoResults;
             if (originalDisplayResults) {
                 window.dashboard.displayVideoResults = function(result) {
@@ -567,11 +755,9 @@ if (typeof window !== 'undefined') {
                 };
             }
             
-            // Also add a method to reset video context when starting a new video upload
             const originalHandleVideoUpload = window.dashboard.handleVideoUpload;
             if (originalHandleVideoUpload) {
                 window.dashboard.handleVideoUpload = function(event) {
-                    // Reset the video context before processing new video
                     if (this.chatModule) {
                         this.chatModule.resetVideoContext();
                     }
