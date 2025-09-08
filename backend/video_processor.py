@@ -577,6 +577,15 @@ Keep response brief and focused on WHAT happened."""
         except Exception as e:
             return f"Error detecting anomalies in live feed: {str(e)}"
 
+    # NEW: Surveillance-specific methods
+    def analyze_surveillance_frames(self, key_frames, video_duration):
+        """Analyze surveillance camera frames - delegates to main VILA method"""
+        return self.analyze_video_with_vila(key_frames, video_duration)
+    
+    def detect_surveillance_anomalies(self, key_frames, video_duration):
+        """Detect anomalies in surveillance frames - delegates to main VILA method"""
+        return self.detect_anomalies_with_vila(key_frames, video_duration)
+
     def process_chat_question(self, question, video_context, context_source=None):
         """IMPROVED: Process chat question with video context - Better responses, no repeated apologies"""
         try:

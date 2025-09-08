@@ -48,6 +48,50 @@ app_state = {
     'worker_threads': []
 }
 
+# FIXED: Enhanced surveillance state management
+surveillance_state = {
+    'cameras': {
+        1: {
+            'active': False, 
+            'url': '', 
+            'cap': None, 
+            'frame_buffer': [], 
+            'reports': [],
+            'last_frame': None,
+            'connection_attempts': 0,
+            'last_analysis': None,
+            'frame_thread': None,
+            'frame_thread_active': False
+        },
+        2: {
+            'active': False, 
+            'url': '', 
+            'cap': None, 
+            'frame_buffer': [], 
+            'reports': [],
+            'last_frame': None,
+            'connection_attempts': 0,
+            'last_analysis': None,
+            'frame_thread': None,
+            'frame_thread_active': False
+        },
+        3: {
+            'active': False, 
+            'url': '', 
+            'cap': None, 
+            'frame_buffer': [], 
+            'reports': [],
+            'last_frame': None,
+            'connection_attempts': 0,
+            'last_analysis': None,
+            'frame_thread': None,
+            'frame_thread_active': False
+        }
+    },
+    'total_cameras': 3,
+    'active_count': 0
+}
+
 # Thread-safe queues
 live_analysis_queue = queue.Queue()
 live_anomaly_queue = queue.Queue()
@@ -63,6 +107,7 @@ def get_system_status():
         'active_cameras': app_state['system_stats']['active_cameras'],
         'ai_scanned': app_state['system_stats']['ai_scanned'],
         'uptime': app_state['system_stats']['uptime'],
+        'surveillance_active_count': surveillance_state['active_count'],
         'timestamp': datetime.now().isoformat()
     })
 
@@ -121,6 +166,353 @@ def get_recent_activity():
         'items': activities,
         'timestamp': datetime.now().isoformat()
     })
+
+# ===== SURVEILLANCE ENDPOINTS (NEW) =====
+
+def connect_to_camera(camera_id, camera_url):
+    """Connect to IP camera with error handling"""
+    try:
+        print(f"Connecting to camera {camera_id}: {camera_url}")
+        
+        # Try to connect to the camera
+        cap = cv2.VideoCapture(camera_url)
+        
+        # Set timeout and buffer settings
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        # Test if camera is accessible
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                print(f"Successfully connected to camera {camera_id}")
+                return cap, None
+            else:
+                cap.release()
+                return None, "Camera opened but no frame received"
+        else:
+            cap.release()
+            return None, "Could not open camera stream"
+            
+    except Exception as e:
+        return None, f"Connection error: {str(e)}"
+
+def camera_frame_worker(camera_id):
+    """Background worker to continuously capture frames from camera"""
+    camera = surveillance_state['cameras'][camera_id]
+    
+    while camera['frame_thread_active'] and camera['active']:
+        try:
+            if camera['cap'] and camera['cap'].isOpened():
+                ret, frame = camera['cap'].read()
+                if ret and frame is not None:
+                    # Store the latest frame
+                    camera['last_frame'] = frame.copy()
+                    
+                    # Add to buffer (keep last 10 frames)
+                    camera['frame_buffer'].append(frame)
+                    if len(camera['frame_buffer']) > 10:
+                        camera['frame_buffer'] = camera['frame_buffer'][-10:]
+                else:
+                    print(f"No frame from camera {camera_id}")
+                    time.sleep(1)  # Wait longer if no frame
+            else:
+                print(f"Camera {camera_id} not accessible")
+                break
+                
+        except Exception as e:
+            print(f"Error in camera {camera_id} worker: {e}")
+            break
+        
+        time.sleep(0.1)  # Capture at ~10 FPS to reduce load
+    
+    print(f"Camera {camera_id} frame worker stopped")
+
+@app.route('/api/surveillance/start', methods=['POST'])
+def start_surveillance_camera():
+    """Start specific surveillance camera"""
+    try:
+        data = request.get_json()
+        camera_id = int(data.get('camera_id'))
+        camera_url = data.get('camera_url', '').strip()
+        
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        if not camera_url:
+            return jsonify({'error': 'Camera URL is required'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        # Stop if already active
+        if camera['active']:
+            return jsonify({'error': f'Camera {camera_id} is already active'}), 400
+        
+        # Try to connect
+        cap, error = connect_to_camera(camera_id, camera_url)
+        if not cap:
+            camera['connection_attempts'] += 1
+            return jsonify({'error': f'Failed to connect: {error}'}), 500
+        
+        # Update camera state
+        camera['cap'] = cap
+        camera['url'] = camera_url
+        camera['active'] = True
+        camera['connection_attempts'] = 0
+        camera['frame_thread_active'] = True
+        
+        # Start frame capture worker
+        camera['frame_thread'] = threading.Thread(
+            target=camera_frame_worker, 
+            args=(camera_id,), 
+            daemon=True
+        )
+        camera['frame_thread'].start()
+        
+        # Update global count
+        surveillance_state['active_count'] = sum(1 for cam in surveillance_state['cameras'].values() if cam['active'])
+        
+        return jsonify({
+            'success': True,
+            'message': f'Camera {camera_id} started successfully',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error starting surveillance camera: {e}")
+        return jsonify({'error': f'Failed to start camera: {str(e)}'}), 500
+
+@app.route('/api/surveillance/stop', methods=['POST'])
+def stop_surveillance_camera():
+    """Stop specific surveillance camera"""
+    try:
+        data = request.get_json()
+        camera_id = int(data.get('camera_id'))
+        
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        # Stop frame worker
+        camera['frame_thread_active'] = False
+        if camera['frame_thread'] and camera['frame_thread'].is_alive():
+            camera['frame_thread'].join(timeout=2)
+        
+        # Release camera
+        if camera['cap']:
+            camera['cap'].release()
+            camera['cap'] = None
+        
+        # Reset camera state
+        camera['active'] = False
+        camera['last_frame'] = None
+        camera['frame_buffer'] = []
+        camera['frame_thread'] = None
+        
+        # Update global count
+        surveillance_state['active_count'] = sum(1 for cam in surveillance_state['cameras'].values() if cam['active'])
+        
+        return jsonify({
+            'success': True,
+            'message': f'Camera {camera_id} stopped',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error stopping surveillance camera: {e}")
+        return jsonify({'error': f'Failed to stop camera: {str(e)}'}), 500
+
+@app.route('/api/surveillance/frame/<int:camera_id>', methods=['GET'])
+def get_surveillance_frame(camera_id):
+    """Get current frame from surveillance camera"""
+    try:
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        if not camera['active'] or camera['last_frame'] is None:
+            return jsonify({'error': 'Camera not active or no frame available'}), 404
+        
+        # Encode frame as base64
+        frame = camera['last_frame']
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'frame': f'data:image/jpeg;base64,{frame_base64}',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error getting surveillance frame: {e}")
+        return jsonify({'error': f'Failed to get frame: {str(e)}'}), 500
+
+@app.route('/api/surveillance/analyze/<int:camera_id>', methods=['POST'])
+def analyze_surveillance_camera(camera_id):
+    """Analyze specific surveillance camera feed"""
+    try:
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        if not camera['active'] or len(camera['frame_buffer']) < 3:
+            return jsonify({'error': 'Camera not active or insufficient frames'}), 400
+        
+        # Use recent frames for analysis
+        frames_to_analyze = camera['frame_buffer'][-6:] if len(camera['frame_buffer']) >= 6 else camera['frame_buffer']
+        
+        # Analyze using video processor
+        result = video_processor.analyze_surveillance_frames(frames_to_analyze, len(frames_to_analyze) / 10.0)
+        
+        # Create report
+        report_content = f"CAMERA {camera_id} ANALYSIS\n"
+        report_content += "=" * 30 + "\n"
+        report_content += f"Time: {datetime.now().strftime('%H:%M:%S')}\n"
+        report_content += f"Frames analyzed: {len(frames_to_analyze)}\n"
+        report_content += f"Duration: ~{len(frames_to_analyze)/10.0:.1f}s\n\n"
+        report_content += "Analysis Results:\n"
+        report_content += "-" * 20 + "\n"
+        report_content += result
+        
+        # Store report
+        report_entry = {
+            'id': len(camera['reports']) + 1,
+            'type': 'Analysis',
+            'content': report_content,
+            'timestamp': datetime.now().isoformat()
+        }
+        camera['reports'].insert(0, report_entry)
+        camera['reports'] = camera['reports'][:10]  # Keep last 10 reports
+        camera['last_analysis'] = result
+        
+        return jsonify({
+            'success': True,
+            'report': report_content,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error analyzing surveillance camera: {e}")
+        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+@app.route('/api/surveillance/anomaly/<int:camera_id>', methods=['POST'])
+def detect_surveillance_anomalies(camera_id):
+    """Detect anomalies in specific surveillance camera feed"""
+    try:
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        if not camera['active'] or len(camera['frame_buffer']) < 3:
+            return jsonify({'error': 'Camera not active or insufficient frames'}), 400
+        
+        # Use recent frames for anomaly detection
+        frames_to_analyze = camera['frame_buffer'][-8:] if len(camera['frame_buffer']) >= 8 else camera['frame_buffer']
+        
+        # Detect anomalies using video processor
+        result = video_processor.detect_surveillance_anomalies(frames_to_analyze, len(frames_to_analyze) / 10.0)
+        
+        # Check if anomalies were detected
+        anomalies_detected = not result.lower().startswith('no significant anomalies')
+        anomaly_count = 1 if anomalies_detected else 0
+        
+        # Create report
+        report_content = f"CAMERA {camera_id} ANOMALY CHECK\n"
+        report_content += "=" * 35 + "\n"
+        report_content += f"Time: {datetime.now().strftime('%H:%M:%S')}\n"
+        report_content += f"Frames analyzed: {len(frames_to_analyze)}\n"
+        report_content += f"Duration: ~{len(frames_to_analyze)/10.0:.1f}s\n"
+        report_content += f"Status: {'ANOMALIES DETECTED' if anomalies_detected else 'NORMAL'}\n\n"
+        report_content += "Detection Results:\n"
+        report_content += "-" * 25 + "\n"
+        report_content += result
+        
+        # Store report
+        report_entry = {
+            'id': len(camera['reports']) + 1,
+            'type': 'Anomaly Detection',
+            'content': report_content,
+            'timestamp': datetime.now().isoformat()
+        }
+        camera['reports'].insert(0, report_entry)
+        camera['reports'] = camera['reports'][:10]  # Keep last 10 reports
+        
+        # Update global stats if anomalies detected
+        if anomalies_detected:
+            app_state['system_stats']['accidents'] += anomaly_count
+            
+            # Add notification
+            app_state['anomaly_notifications'].append({
+                'id': len(app_state['anomaly_notifications']) + 1,
+                'message': f'Anomaly detected on Camera {camera_id}',
+                'details': result[:100] + '...' if len(result) > 100 else result,
+                'timestamp': datetime.now().isoformat(),
+                'read': False
+            })
+        
+        return jsonify({
+            'success': True,
+            'report': report_content,
+            'anomalies_detected': anomalies_detected,
+            'anomaly_count': anomaly_count,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error detecting surveillance anomalies: {e}")
+        return jsonify({'error': f'Anomaly detection failed: {str(e)}'}), 500
+
+@app.route('/api/surveillance/reports/<int:camera_id>', methods=['GET'])
+def get_surveillance_reports(camera_id):
+    """Get reports for specific surveillance camera"""
+    try:
+        if camera_id not in surveillance_state['cameras']:
+            return jsonify({'error': 'Invalid camera ID'}), 400
+        
+        camera = surveillance_state['cameras'][camera_id]
+        
+        return jsonify({
+            'success': True,
+            'reports': camera['reports'],
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error getting surveillance reports: {e}")
+        return jsonify({'error': f'Failed to get reports: {str(e)}'}), 500
+
+@app.route('/api/surveillance/status', methods=['GET'])
+def get_surveillance_status():
+    """Get overall surveillance system status"""
+    try:
+        status = {
+            'total_cameras': surveillance_state['total_cameras'],
+            'active_cameras': surveillance_state['active_count'],
+            'cameras': {}
+        }
+        
+        for cam_id, camera in surveillance_state['cameras'].items():
+            status['cameras'][cam_id] = {
+                'active': camera['active'],
+                'url': camera['url'],
+                'has_frames': len(camera['frame_buffer']) > 0,
+                'connection_attempts': camera['connection_attempts'],
+                'reports_count': len(camera['reports'])
+            }
+        
+        return jsonify({
+            'success': True,
+            'status': status,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error getting surveillance status: {e}")
+        return jsonify({'error': f'Failed to get status: {str(e)}'}), 500
 
 # ===== VIDEO ANALYSIS ENDPOINTS =====
 
@@ -749,6 +1141,26 @@ def stop_live_workers():
     
     app_state['worker_threads'] = []
 
+def cleanup_surveillance_on_exit():
+    """Clean up surveillance cameras on application exit"""
+    print("Cleaning up surveillance cameras...")
+    for camera_id, camera in surveillance_state['cameras'].items():
+        if camera['active']:
+            try:
+                # Stop frame worker
+                camera['frame_thread_active'] = False
+                if camera['frame_thread'] and camera['frame_thread'].is_alive():
+                    camera['frame_thread'].join(timeout=2)
+                
+                # Release camera
+                if camera['cap']:
+                    camera['cap'].release()
+                    camera['cap'] = None
+                    
+                print(f"Camera {camera_id} cleaned up")
+            except Exception as e:
+                print(f"Error cleaning up camera {camera_id}: {e}")
+
 # ===== STATIC FILE SERVING =====
 
 @app.route('/api/video/<filename>')
@@ -785,6 +1197,7 @@ def cleanup_on_exit():
     """Clean up resources on application exit"""
     print("Cleaning up resources...")
     stop_live_workers()
+    cleanup_surveillance_on_exit()
     if video_processor:
         video_processor.stop_live_tracking()
 
@@ -801,6 +1214,15 @@ if __name__ == '__main__':
     print("- API Server: http://localhost:5000")
     print("- Dashboard should be served separately on http://localhost:8080")
     print("- Make sure to serve the frontend files with a web server")
+    print("- Surveillance endpoints added: /api/surveillance/*")
+    print("- Available surveillance endpoints:")
+    print("  * POST /api/surveillance/start - Start camera")
+    print("  * POST /api/surveillance/stop - Stop camera")
+    print("  * GET /api/surveillance/frame/<camera_id> - Get live frame")
+    print("  * POST /api/surveillance/analyze/<camera_id> - Analyze feed")
+    print("  * POST /api/surveillance/anomaly/<camera_id> - Detect anomalies")
+    print("  * GET /api/surveillance/reports/<camera_id> - Get reports")
+    print("  * GET /api/surveillance/status - Get system status")
     
     # Configure Flask
     app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size

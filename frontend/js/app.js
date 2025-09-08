@@ -1,4 +1,4 @@
-// Main App JavaScript - Multi-page navigation
+// Main App JavaScript - Multi-page navigation with Surveillance support
 class VideoAnalysisDashboard {
     constructor() {
         this.apiBaseUrl = 'http://localhost:5000/api';
@@ -30,6 +30,7 @@ class VideoAnalysisDashboard {
             'index.html': 'dashboard',
             '': 'dashboard',
             'live.html': 'live',
+            'surveillance.html': 'surveillance',
             'analysis.html': 'analysis',
             'chat.html': 'chat',
             'reports.html': 'reports',
@@ -75,6 +76,7 @@ class VideoAnalysisDashboard {
         const pageMap = {
             'dashboard': 'index.html',
             'live': 'live.html',
+            'surveillance': 'surveillance.html',
             'analysis': 'analysis.html',
             'chat': 'chat.html',
             'reports': 'reports.html',
@@ -106,6 +108,9 @@ class VideoAnalysisDashboard {
                 break;
             case 'live':
                 this.initializeLiveMonitor();
+                break;
+            case 'surveillance':
+                // Surveillance initialization is handled by surveillance.js module
                 break;
             case 'analysis':
                 this.initializeVideoAnalysis();
@@ -347,7 +352,7 @@ class VideoAnalysisDashboard {
                 .replace(/={30}/g, '<hr style="border: 1px solid #475569; margin: 10px 0;">')
                 .replace(/-{30}/g, '<div style="border-bottom: 1px dashed #64748b; margin: 8px 0;"></div>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/ÃƒÆ'Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ /g, '&bull; ');
+                .replace(/ÃƒÆ'Ã†'Ãƒâ€šÃ‚Â¢ÃƒÆ'Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ'Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ /g, '&bull; ');
             
             analysisReport.innerHTML = formattedReport;
             

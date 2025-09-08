@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All-Surveillance Platform - Video Intelligence Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/surveillance.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <span>CCTVentory</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" data-page="live">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Live Monitor</span>
+            </li>
+            <li class="nav-item active" data-page="surveillance">
+                <i class="fas fa-eye"></i>
+                <span>All-Surveillance</span>
+            </li>
+            <li class="nav-item" data-page="analysis">
+                <i class="fas fa-play-circle"></i>
+                <span>Video Analysis</span>
+            </li>
+            <li class="nav-item" data-page="chat">
+                <i class="fas fa-comments"></i>
+                <span>AI Chat</span>
+            </li>
+            <li class="nav-item" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Analysis Reports</span>
+            </li>
+            <li class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">All-Surveillance Platform</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search cameras...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Surveillance Controls -->
+        <div class="surveillance-controls">
+            <div class="control-section">
+                <div class="global-controls">
+                    <button class="btn-primary" id="startAllBtn">
+                        <i class="fas fa-play"></i>
+                        Start All Cameras
+                    </button>
+                    <button class="btn-secondary" id="stopAllBtn">
+                        <i class="fas fa-stop"></i>
+                        Stop All Cameras
+                    </button>
+                    <button class="btn-outline" id="analyzeAllBtn">
+                        <i class="fas fa-search"></i>
+                        Analyze All Feeds
+                    </button>
+                    <button class="btn-outline" id="anomalyAllBtn">
+                        <i class="fas fa-shield-alt"></i>
+                        Detect All Anomalies
+                    </button>
+                </div>
+                
+                <div class="status-overview">
+                    <div class="status-item">
+                        <span>Active Cameras:</span>
+                        <span class="status-value" id="activeCamerasCount">0/3</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Total Analysis:</span>
+                        <span class="status-value" id="totalAnalysisCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Anomalies Detected:</span>
+                        <span class="status-value" id="anomaliesCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Setup Modal Trigger -->
+        <div class="setup-section">
+            <button class="btn-outline" id="setupCamerasBtn">
+                <i class="fas fa-cog"></i>
+                Setup IP Cameras
+            </button>
+        </div>
+
+        <!-- Surveillance Grid -->
+        <div class="surveillance-grid" id="surveillanceGrid">
+            <!-- Camera Dashboard 1 -->
+            <div class="camera-dashboard" data-camera="1">
+                <div class="camera-header">
+                    <div class="camera-title">
+                        <h3>Camera 1</h3>
+                        <span class="camera-status offline" id="status-1">Offline</span>
+                    </div>
+                    <div class="camera-actions">
+                        <button class="btn-icon" data-action="fullscreen" data-camera="1">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="btn-icon" data-action="settings" data-camera="1">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-feed-container">
+                    <div class="camera-feed" id="feed-1">
+                        <div class="feed-placeholder">
+                            <i class="fas fa-video-slash"></i>
+                            <p>Camera Not Connected</p>
+                            <small>Add IP webcam URL to start</small>
+                        </div>
+                    </div>
+                    <div class="feed-overlay" id="overlay-1">
+                        <div class="feed-info">
+                            <span class="feed-resolution" id="resolution-1">N/A</span>
+                            <span class="feed-fps" id="fps-1">0 FPS</span>
+                        </div>
+                        <div class="recording-indicator" id="recording-1" style="display: none;">
+                            <span class="rec-dot"></span>
+                            <span>REC</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="camera-controls">
+                    <div class="control-row">
+                        <button class="btn-small btn-primary" data-action="start" data-camera="1">
+                            <i class="fas fa-play"></i>
+                            Start
+                        </button>
+                        <button class="btn-small btn-secondary" data-action="stop" data-camera="1">
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                        <button class="btn-small btn-outline" data-action="refresh" data-camera="1">
+                            <i class="fas fa-refresh"></i>
+                        </button>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn-small btn-success" data-action="analyze" data-camera="1">
+                            <i class="fas fa-search"></i>
+                            Analyze
+                        </button>
+                        <button class="btn-small btn-warning" data-action="anomaly" data-camera="1">
+                            <i class="fas fa-shield-alt"></i>
+                            Anomalies
+                        </button>
+                        <button class="btn-small btn-info" data-action="summary" data-camera="1">
+                            <i class="fas fa-file-text"></i>
+                            Summary
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-report" id="report-1">
+                    <div class="report-header">
+                        <h4>Analysis Report</h4>
+                        <button class="btn-text" data-action="clear-report" data-camera="1">Clear</button>
+                    </div>
+                    <div class="report-content">
+                        <p>No analysis performed yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Dashboard 2 -->
+            <div class="camera-dashboard" data-camera="2">
+                <div class="camera-header">
+                    <div class="camera-title">
+                        <h3>Camera 2</h3>
+                        <span class="camera-status offline" id="status-2">Offline</span>
+                    </div>
+                    <div class="camera-actions">
+                        <button class="btn-icon" data-action="fullscreen" data-camera="2">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="btn-icon" data-action="settings" data-camera="2">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-feed-container">
+                    <div class="camera-feed" id="feed-2">
+                        <div class="feed-placeholder">
+                            <i class="fas fa-video-slash"></i>
+                            <p>Camera Not Connected</p>
+                            <small>Add IP webcam URL to start</small>
+                        </div>
+                    </div>
+                    <div class="feed-overlay" id="overlay-2">
+                        <div class="feed-info">
+                            <span class="feed-resolution" id="resolution-2">N/A</span>
+                            <span class="feed-fps" id="fps-2">0 FPS</span>
+                        </div>
+                        <div class="recording-indicator" id="recording-2" style="display: none;">
+                            <span class="rec-dot"></span>
+                            <span>REC</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="camera-controls">
+                    <div class="control-row">
+                        <button class="btn-small btn-primary" data-action="start" data-camera="2">
+                            <i class="fas fa-play"></i>
+                            Start
+                        </button>
+                        <button class="btn-small btn-secondary" data-action="stop" data-camera="2">
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                        <button class="btn-small btn-outline" data-action="refresh" data-camera="2">
+                            <i class="fas fa-refresh"></i>
+                        </button>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn-small btn-success" data-action="analyze" data-camera="2">
+                            <i class="fas fa-search"></i>
+                            Analyze
+                        </button>
+                        <button class="btn-small btn-warning" data-action="anomaly" data-camera="2">
+                            <i class="fas fa-shield-alt"></i>
+                            Anomalies
+                        </button>
+                        <button class="btn-small btn-info" data-action="summary" data-camera="2">
+                            <i class="fas fa-file-text"></i>
+                            Summary
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-report" id="report-2">
+                    <div class="report-header">
+                        <h4>Analysis Report</h4>
+                        <button class="btn-text" data-action="clear-report" data-camera="2">Clear</button>
+                    </div>
+                    <div class="report-content">
+                        <p>No analysis performed yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Dashboard 3 -->
+            <div class="camera-dashboard" data-camera="3">
+                <div class="camera-header">
+                    <div class="camera-title">
+                        <h3>Camera 3</h3>
+                        <span class="camera-status offline" id="status-3">Offline</span>
+                    </div>
+                    <div class="camera-actions">
+                        <button class="btn-icon" data-action="fullscreen" data-camera="3">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="btn-icon" data-action="settings" data-camera="3">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-feed-container">
+                    <div class="camera-feed" id="feed-3">
+                        <div class="feed-placeholder">
+                            <i class="fas fa-video-slash"></i>
+                            <p>Camera Not Connected</p>
+                            <small>Add IP webcam URL to start</small>
+                        </div>
+                    </div>
+                    <div class="feed-overlay" id="overlay-3">
+                        <div class="feed-info">
+                            <span class="feed-resolution" id="resolution-3">N/A</span>
+                            <span class="feed-fps" id="fps-3">0 FPS</span>
+                        </div>
+                        <div class="recording-indicator" id="recording-3" style="display: none;">
+                            <span class="rec-dot"></span>
+                            <span>REC</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="camera-controls">
+                    <div class="control-row">
+                        <button class="btn-small btn-primary" data-action="start" data-camera="3">
+                            <i class="fas fa-play"></i>
+                            Start
+                        </button>
+                        <button class="btn-small btn-secondary" data-action="stop" data-camera="3">
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                        <button class="btn-small btn-outline" data-action="refresh" data-camera="3">
+                            <i class="fas fa-refresh"></i>
+                        </button>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn-small btn-success" data-action="analyze" data-camera="3">
+                            <i class="fas fa-search"></i>
+                            Analyze
+                        </button>
+                        <button class="btn-small btn-warning" data-action="anomaly" data-camera="3">
+                            <i class="fas fa-shield-alt"></i>
+                            Anomalies
+                        </button>
+                        <button class="btn-small btn-info" data-action="summary" data-camera="3">
+                            <i class="fas fa-file-text"></i>
+                            Summary
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-report" id="report-3">
+                    <div class="report-header">
+                        <h4>Analysis Report</h4>
+                        <button class="btn-text" data-action="clear-report" data-camera="3">Clear</button>
+                    </div>
+                    <div class="report-content">
+                        <p>No analysis performed yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Camera Setup Modal -->
+    <div class="modal-overlay" id="cameraSetupModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Setup IP Cameras</h3>
+                <button class="modal-close" id="closeSetupModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="camera-setup-form">
+                    <div class="setup-item">
+                        <label for="camera1Url">Camera 1 IP URL:</label>
+                        <input type="text" id="camera1Url" placeholder="http://192.168.1.100:8080/video" class="form-input">
+                        <small>Example: http://192.168.1.100:8080/video</small>
+                    </div>
+                    <div class="setup-item">
+                        <label for="camera2Url">Camera 2 IP URL:</label>
+                        <input type="text" id="camera2Url" placeholder="http://192.168.1.101:8080/video" class="form-input">
+                        <small>Example: http://192.168.1.101:8080/video</small>
+                    </div>
+                    <div class="setup-item">
+                        <label for="camera3Url">Camera 3 IP URL:</label>
+                        <input type="text" id="camera3Url" placeholder="http://192.168.1.102:8080/video" class="form-input">
+                        <small>Example: http://192.168.1.102:8080/video</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelSetup">Cancel</button>
+                <button class="btn-primary" id="saveSetup">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Modal -->
+    <div class="fullscreen-modal" id="fullscreenModal" style="display: none;">
+        <div class="fullscreen-header">
+            <h3 id="fullscreenTitle">Camera View</h3>
+            <button class="btn-icon" id="closeFullscreen">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="fullscreen-content" id="fullscreenContent">
+            <!-- Camera feed will be cloned here -->
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/surveillance.js"></script>
+</body>
+</html>
