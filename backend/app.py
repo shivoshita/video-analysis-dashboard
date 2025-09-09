@@ -197,24 +197,34 @@ def connect_to_camera(camera_id, camera_url):
         return None, f"Connection error: {str(e)}"
 
 def camera_frame_worker(camera_id):
-    """Background worker to continuously capture frames from camera"""
+    """OPTIMIZED background worker for real-time frame capture"""
     camera = surveillance_state['cameras'][camera_id]
+    
+    # Set optimal camera parameters for real-time streaming
+    if camera['cap']:
+        camera['cap'].set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimal buffer
+        camera['cap'].set(cv2.CAP_PROP_FPS, 30)        # Higher FPS
+    
+    frame_count = 0
     
     while camera['frame_thread_active'] and camera['active']:
         try:
             if camera['cap'] and camera['cap'].isOpened():
                 ret, frame = camera['cap'].read()
                 if ret and frame is not None:
-                    # Store the latest frame
+                    # Always store latest frame for real-time display
                     camera['last_frame'] = frame.copy()
                     
-                    # Add to buffer (keep last 10 frames)
-                    camera['frame_buffer'].append(frame)
-                    if len(camera['frame_buffer']) > 10:
-                        camera['frame_buffer'] = camera['frame_buffer'][-10:]
+                    # Add to buffer less frequently (every 10th frame for analysis)
+                    frame_count += 1
+                    if frame_count % 10 == 0:
+                        camera['frame_buffer'].append(frame.copy())
+                        # Keep only last 30 frames (about 10 seconds of samples)
+                        if len(camera['frame_buffer']) > 30:
+                            camera['frame_buffer'] = camera['frame_buffer'][-30:]
                 else:
                     print(f"No frame from camera {camera_id}")
-                    time.sleep(1)  # Wait longer if no frame
+                    time.sleep(0.1)
             else:
                 print(f"Camera {camera_id} not accessible")
                 break
@@ -223,7 +233,8 @@ def camera_frame_worker(camera_id):
             print(f"Error in camera {camera_id} worker: {e}")
             break
         
-        time.sleep(0.1)  # Capture at ~10 FPS to reduce load
+        # CRITICAL: Much shorter sleep for real-time performance
+        time.sleep(0.033)  # ~30 FPS instead of 0.1 (10 FPS)
     
     print(f"Camera {camera_id} frame worker stopped")
 
@@ -324,7 +335,7 @@ def stop_surveillance_camera():
 
 @app.route('/api/surveillance/frame/<int:camera_id>', methods=['GET'])
 def get_surveillance_frame(camera_id):
-    """Get current frame from surveillance camera"""
+    """OPTIMIZED - Get current frame with caching"""
     try:
         if camera_id not in surveillance_state['cameras']:
             return jsonify({'error': 'Invalid camera ID'}), 400
@@ -334,9 +345,19 @@ def get_surveillance_frame(camera_id):
         if not camera['active'] or camera['last_frame'] is None:
             return jsonify({'error': 'Camera not active or no frame available'}), 404
         
-        # Encode frame as base64
+        # Get frame - no copy needed since we're encoding immediately
         frame = camera['last_frame']
-        _, buffer = cv2.imencode('.jpg', frame)
+        
+        # OPTIMIZED: Resize before encoding to reduce data size
+        height, width = frame.shape[:2]
+        if width > 640:  # Resize large frames for web display
+            new_width = 640
+            new_height = int(height * (new_width / width))
+            frame = cv2.resize(frame, (new_width, new_height))
+        
+        # OPTIMIZED: Lower JPEG quality for faster encoding/transmission
+        encode_params = [cv2.IMWRITE_JPEG_QUALITY, 75]  # Reduced from default 95
+        _, buffer = cv2.imencode('.jpg', frame, encode_params)
         frame_base64 = base64.b64encode(buffer).decode('utf-8')
         
         return jsonify({
@@ -348,6 +369,45 @@ def get_surveillance_frame(camera_id):
     except Exception as e:
         print(f"Error getting surveillance frame: {e}")
         return jsonify({'error': f'Failed to get frame: {str(e)}'}), 500
+
+# ADD this new optimized endpoint for live monitoring in app.py
+@app.route('/api/live/frame/fast', methods=['GET'])
+def get_live_frame_fast():
+    """OPTIMIZED live frame endpoint with minimal processing"""
+    try:
+        if not app_state['live_tracking_active']:
+            return jsonify({'error': 'Live monitoring not active'}), 400
+        
+        # Get frame directly without extra processing
+        if video_processor.live_cap and video_processor.live_cap.isOpened():
+            ret, frame = video_processor.live_cap.read()
+            if ret and frame is not None:
+                # OPTIMIZED: Resize and compress for web
+                height, width = frame.shape[:2]
+                if width > 640:
+                    new_width = 640
+                    new_height = int(height * (new_width / width))
+                    frame = cv2.resize(frame, (new_width, new_height))
+                
+                # Add minimal overlay
+                cv2.putText(frame, f"LIVE {datetime.now().strftime('%H:%M:%S')}", 
+                           (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1)
+                
+                # Fast JPEG encoding
+                encode_params = [cv2.IMWRITE_JPEG_QUALITY, 70]
+                _, buffer = cv2.imencode('.jpg', frame, encode_params)
+                frame_base64 = base64.b64encode(buffer).decode('utf-8')
+                
+                return jsonify({
+                    'success': True,
+                    'frame': f'data:image/jpeg;base64,{frame_base64}',
+                    'timestamp': datetime.now().isoformat()
+                })
+        
+        return jsonify({'error': 'No frame available'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to get live frame: {str(e)}'}), 500
 
 @app.route('/api/surveillance/analyze/<int:camera_id>', methods=['POST'])
 def analyze_surveillance_camera(camera_id):
@@ -647,30 +707,34 @@ def detect_anomalies():
 
 @app.route('/api/live/start', methods=['POST'])
 def start_live_monitoring():
-    """Start live camera monitoring"""
+    """Start live camera monitoring - OPTIMIZED"""
     try:
         if app_state['live_tracking_active']:
             return jsonify({'error': 'Live monitoring already active'}), 400
         
-        # Initialize camera
+        # Initialize camera with optimized settings
         success, message = video_processor.start_live_tracking()
         
-        if success:
+        if success and video_processor.live_cap:
+            # CRITICAL: Optimize camera settings for real-time streaming
+            video_processor.live_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            video_processor.live_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            video_processor.live_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            video_processor.live_cap.set(cv2.CAP_PROP_FPS, 30)
+            
             app_state['live_tracking_active'] = True
             app_state['live_cap'] = video_processor.live_cap
             
-            # Start background workers with proper control
+            # Start background workers
             start_live_workers()
             
             return jsonify({
                 'success': True,
-                'message': 'Live monitoring started successfully',
+                'message': 'Live monitoring started with optimized settings',
                 'timestamp': datetime.now().isoformat()
             })
         else:
-            return jsonify({
-                'error': message
-            }), 500
+            return jsonify({'error': message}), 500
             
     except Exception as e:
         return jsonify({
@@ -857,38 +921,44 @@ def get_live_reports():
 
 # ===== CHAT ENDPOINTS =====
 
-@app.route('/api/chat/message', methods=['POST'])
+# Change your route from /api/chat/message to /api/chat
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def process_chat_message():
-    """Process chat message with AI - IMPROVED VERSION"""
+    """Process chat message with AI - IMPROVED VERSION with CORS support"""
+    
+    # Handle CORS preflight request
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.get_json()
         if not data or 'message' not in data:
             return jsonify({'error': 'No message provided'}), 400
-        
+                
         user_message = data['message'].strip()
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
-        
+                
         # Determine which context to use with improved priority logic
         video_context = None
         context_source = None
-        
+                
         # Priority 1: Active live video context (if live monitoring is running)
         if (app_state['live_tracking_active'] and 
             app_state['live_video_context']):
             video_context = app_state['live_video_context']
             context_source = 'live'
-        
+                
         # Priority 2: Last processed context (covers stopped live or uploaded videos)
         elif app_state['last_processed_context']:
             video_context = app_state['last_processed_context']
             context_source = video_context.get('source', 'unknown')
-        
+                
         # Priority 3: Any uploaded video context
         elif app_state['video_context']:
             video_context = app_state['video_context']
             context_source = 'uploaded'
-        
+                
         # Generate response
         if not video_context:
             response = """I don't have any video analysis context available yet. To get started:
@@ -905,7 +975,7 @@ Once you have processed some video content, I'll be able to answer questions abo
                 video_context,
                 context_source
             )
-        
+                
         # Add to chat history
         app_state['chat_history'].append({
             'role': 'user',
@@ -918,24 +988,25 @@ Once you have processed some video content, I'll be able to answer questions abo
             'timestamp': datetime.now().isoformat(),
             'context_source': context_source
         })
-        
+                
         # Keep only last 20 exchanges (40 messages)
         if len(app_state['chat_history']) > 40:
             app_state['chat_history'] = app_state['chat_history'][-40:]
-        
+                
         return jsonify({
             'success': True,
             'response': response,
             'context_source': context_source,
             'timestamp': datetime.now().isoformat()
         })
-        
+            
     except Exception as e:
         print(f"Chat processing error: {e}")
         return jsonify({
+            'success': False,
             'error': f'Chat processing failed: {str(e)}'
         }), 500
-
+        
 @app.route('/api/chat/history', methods=['GET'])
 def get_chat_history():
     """Get chat history"""

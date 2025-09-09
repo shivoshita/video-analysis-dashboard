@@ -93,8 +93,14 @@
             transition: border-color 0.2s ease;
         }
         
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #14b8a6;
             box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
@@ -186,6 +192,24 @@
             background-color: #f9fafb;
         }
         
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #059669;
+        }
+        
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        
         .storage-meter {
             margin: 1rem 0;
         }
@@ -216,6 +240,114 @@
             margin-top: 0.25rem;
         }
         
+        /* Anomaly Configuration Styles */
+        .anomaly-form {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            background-color: #f9fafb;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .anomaly-list {
+            margin-top: 1.5rem;
+        }
+        
+        .anomaly-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .anomaly-item:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .anomaly-info {
+            flex: 1;
+        }
+        
+        .anomaly-name {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.25rem;
+        }
+        
+        .anomaly-description {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .anomaly-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+        }
+        
+        .anomaly-type,
+        .anomaly-criticality {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .anomaly-type {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .criticality-high {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .criticality-medium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .criticality-low {
+            background-color: #d1fae5;
+            color: #166534;
+        }
+        
+        .anomaly-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #d1d5db;
+        }
+        
         @media (max-width: 768px) {
             .main-content {
                 padding: 1rem;
@@ -230,6 +362,21 @@
             .settings-actions {
                 flex-direction: column;
             }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .anomaly-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .anomaly-actions {
+                margin-left: 0;
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
@@ -239,7 +386,7 @@
         <div class="sidebar-header">
             <div class="logo">
                 <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
-                <span>CCTVentory</span>
+                <span>CCTView</span>
             </div>
         </div>
         
@@ -309,6 +456,7 @@
         <div class="settings-container">
             <div class="settings-tabs">
                 <div class="settings-tab active" data-tab="analysis">Analysis</div>
+                <div class="settings-tab" data-tab="anomalies">Anomalies</div>
                 <div class="settings-tab" data-tab="notifications">Notifications</div>
                 <div class="settings-tab" data-tab="api">API Configuration</div>
                 <div class="settings-tab" data-tab="storage">Storage</div>
@@ -367,6 +515,60 @@
                                 <span class="toggle-slider"></span>
                             </div>
                         </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomalies Configuration -->
+            <div class="settings-content" id="anomalies-settings">
+                <div class="settings-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Configure Custom Anomalies</h3>
+                    <div class="anomaly-form">
+                        <h4 style="margin-bottom: 1rem; color: #374151;">Add New Anomaly</h4>
+                        <div class="form-group">
+                            <label for="anomalyName">Anomaly Name</label>
+                            <input type="text" id="anomalyName" placeholder="e.g., Unauthorized Vehicle Entry">
+                        </div>
+                        <div class="form-group">
+                            <label for="anomalyDescription">Description</label>
+                            <textarea id="anomalyDescription" placeholder="Describe what this anomaly represents and when it should be detected..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="anomalyType">Anomaly Type</label>
+                                <select id="anomalyType">
+                                    <option value="">Select type...</option>
+                                    <option value="motion">Motion Detection</option>
+                                    <option value="object">Object Detection</option>
+                                    <option value="behavior">Behavior Analysis</option>
+                                    <option value="access">Access Control</option>
+                                    <option value="safety">Safety Violation</option>
+                                    <option value="environmental">Environmental</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="anomalyCriticality">Criticality Level</label>
+                                <select id="anomalyCriticality">
+                                    <option value="">Select criticality...</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-success" id="addAnomalyBtn">
+                                <i class="fas fa-plus"></i> Add Anomaly
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3><i class="fas fa-list"></i> Configured Anomalies</h3>
+                    <div class="anomaly-list" id="anomalyList">
+                        <!-- Anomaly items will be populated here -->
                     </div>
                 </div>
             </div>
@@ -572,11 +774,11 @@
             </div>
 
             <div class="settings-actions">
-                <button class="btn-primary" id="saveSettingsBtn">
+                <button class="btn btn-primary" id="saveSettingsBtn">
                     <i class="fas fa-save"></i>
                     Save Settings
                 </button>
-                <button class="btn-outline" id="resetSettingsBtn">
+                <button class="btn btn-outline" id="resetSettingsBtn">
                     <i class="fas fa-undo"></i>
                     Reset to Default
                 </button>
@@ -596,6 +798,216 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // Anomalies management
+        let anomalies = [];
+        let editingAnomalyIndex = -1;
+
+        // Load saved anomalies on page load
+        async function loadAnomalies() {
+            const savedAnomalies = JSON.parse(localStorage.getItem('anomalies') || '[]');
+            anomalies = savedAnomalies;
+            renderAnomalies();
+            
+            // Sync with API on load
+            if (anomalies.length > 0) {
+                await syncAnomaliesWithAPI();
+            }
+        }
+
+        // Save anomalies to localStorage
+        function saveAnomalies() {
+            localStorage.setItem('anomalies', JSON.stringify(anomalies));
+            
+            // Sync with API server
+            syncAnomaliesWithAPI();
+        }
+
+        async function syncAnomaliesWithAPI() {
+            try {
+                const response = await fetch('http://127.0.0.1:3000/api/save-custom-anomalies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        anomalies: anomalies
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Synced ${data.count} custom anomalies with API server`);
+                } else {
+                    console.error('Failed to sync anomalies with API:', data.error);
+                }
+                
+            } catch (error) {
+                console.error('Error syncing anomalies with API:', error);
+            }
+        }
+
+        // Render anomalies list
+        function renderAnomalies() {
+            const anomalyList = document.getElementById('anomalyList');
+            
+            if (anomalies.length === 0) {
+                anomalyList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>No Anomalies Configured</h4>
+                        <p>Add custom anomalies to enhance your video analysis detection capabilities.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            anomalyList.innerHTML = anomalies.map((anomaly, index) => `
+                <div class="anomaly-item">
+                    <div class="anomaly-info">
+                        <div class="anomaly-name">${anomaly.name}</div>
+                        <div class="anomaly-description">${anomaly.description}</div>
+                        <div class="anomaly-meta">
+                            <span class="anomaly-type">${anomaly.type}</span>
+                            <span class="anomaly-criticality criticality-${anomaly.criticality}">${anomaly.criticality}</span>
+                        </div>
+                    </div>
+                    <div class="anomaly-actions">
+                        <button class="btn btn-outline btn-sm" onclick="editAnomaly(${index})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAnomaly(${index})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add new anomaly
+        function addAnomaly() {
+            const name = document.getElementById('anomalyName').value.trim();
+            const description = document.getElementById('anomalyDescription').value.trim();
+            const type = document.getElementById('anomalyType').value;
+            const criticality = document.getElementById('anomalyCriticality').value;
+
+            // Validation
+            if (!name) {
+                showToast('Please enter an anomaly name', 'error');
+                return;
+            }
+
+            if (!description) {
+                showToast('Please enter a description', 'error');
+                return;
+            }
+
+            if (!type) {
+                showToast('Please select an anomaly type', 'error');
+                return;
+            }
+
+            if (!criticality) {
+                showToast('Please select a criticality level', 'error');
+                return;
+            }
+
+            const anomaly = {
+                id: Date.now(),
+                name,
+                description,
+                type,
+                criticality,
+                createdAt: new Date().toISOString(),
+                enabled: true
+            };
+
+            if (editingAnomalyIndex >= 0) {
+                // Update existing anomaly
+                anomalies[editingAnomalyIndex] = { ...anomalies[editingAnomalyIndex], ...anomaly };
+                editingAnomalyIndex = -1;
+                document.getElementById('addAnomalyBtn').innerHTML = '<i class="fas fa-plus"></i> Add Anomaly';
+                showToast('Anomaly updated successfully', 'success');
+            } else {
+                // Add new anomaly
+                anomalies.push(anomaly);
+                showToast('Anomaly added successfully', 'success');
+            }
+
+            // Clear form
+            clearAnomalyForm();
+            
+            // Save and re-render
+            saveAnomalies();
+            renderAnomalies();
+        }
+
+        // Edit anomaly
+        function editAnomaly(index) {
+            const anomaly = anomalies[index];
+            
+            document.getElementById('anomalyName').value = anomaly.name;
+            document.getElementById('anomalyDescription').value = anomaly.description;
+            document.getElementById('anomalyType').value = anomaly.type;
+            document.getElementById('anomalyCriticality').value = anomaly.criticality;
+            
+            editingAnomalyIndex = index;
+            document.getElementById('addAnomalyBtn').innerHTML = '<i class="fas fa-save"></i> Update Anomaly';
+            
+            // Scroll to form
+            document.querySelector('.anomaly-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Delete anomaly
+        function deleteAnomaly(index) {
+            if (confirm('Are you sure you want to delete this anomaly? This action cannot be undone.')) {
+                anomalies.splice(index, 1);
+                saveAnomalies();
+                renderAnomalies();
+                showToast('Anomaly deleted successfully', 'success');
+            }
+        }
+
+        // Clear anomaly form
+        function clearAnomalyForm() {
+            document.getElementById('anomalyName').value = '';
+            document.getElementById('anomalyDescription').value = '';
+            document.getElementById('anomalyType').value = '';
+            document.getElementById('anomalyCriticality').value = '';
+            editingAnomalyIndex = -1;
+            document.getElementById('addAnomalyBtn').innerHTML = '<i class="fas fa-plus"></i> Add Anomaly';
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#14b8a6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 0.5rem;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
         // Tab switching functionality
         const tabs = document.querySelectorAll('.settings-tab');
         const contents = document.querySelectorAll('.settings-content');
@@ -612,6 +1024,84 @@
                 document.getElementById(`${tabId}-settings`).classList.add('active');
             });
         });
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load anomalies on page load
+            loadAnomalies();
+            
+            // Add anomaly button click
+            document.getElementById('addAnomalyBtn').addEventListener('click', addAnomaly);
+            
+            // Save settings button
+            document.getElementById('saveSettingsBtn').addEventListener('click', async function() {
+                // Save all settings including anomalies
+                saveAnomalies();
+                
+                // Show confirmation
+                showToast('Settings saved successfully! Custom anomalies are now active for detection.', 'success');
+                
+                // Optional: Verify sync
+                setTimeout(async () => {
+                    try {
+                        const response = await fetch('http://127.0.0.1:3000/api/get-custom-anomalies');
+                        const data = await response.json();
+                        if (data.success) {
+                            console.log(`Verified: ${data.count} custom anomalies active on server`);
+                        }
+                    } catch (error) {
+                        console.error('Could not verify anomaly sync:', error);
+                    }
+                }, 1000);
+            });
+            
+            // Reset settings button
+            document.getElementById('resetSettingsBtn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset all settings to default? This action cannot be undone.')) {
+                    // Clear anomalies
+                    anomalies = [];
+                    saveAnomalies();
+                    renderAnomalies();
+                    clearAnomalyForm();
+                    showToast('Settings reset to default', 'success');
+                }
+            });
+
+            // Form validation on input
+            const requiredFields = ['anomalyName', 'anomalyDescription', 'anomalyType', 'anomalyCriticality'];
+            requiredFields.forEach(fieldId => {
+                document.getElementById(fieldId).addEventListener('input', function() {
+                    this.style.borderColor = this.value.trim() ? '#d1d5db' : '#ef4444';
+                });
+            });
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
     
     <script src="js/app.js"></script>

@@ -31,7 +31,7 @@ class VideoAnalysisDashboard {
             '': 'dashboard',
             'live.html': 'live',
             'surveillance.html': 'surveillance',
-            'analysis.html': 'analysis',
+            'analyser.html': 'analysis',
             'chat.html': 'chat',
             'reports.html': 'reports',
             'settings.html': 'settings'
@@ -77,7 +77,7 @@ class VideoAnalysisDashboard {
             'dashboard': 'index.html',
             'live': 'live.html',
             'surveillance': 'surveillance.html',
-            'analysis': 'analysis.html',
+            'analysis': 'analyser.html',
             'chat': 'chat.html',
             'reports': 'reports.html',
             'settings': 'settings.html'
