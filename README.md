@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![CCTView Logo](https://via.placeholder.com/150x150/4ECDC4/FFFFFF?text=CCTV)
-
 ### *Empowering surveillance with next-generation AI intelligence*
 
 [![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge)](https://github.com/shivoshita/video-analysis-dashboard)
@@ -398,11 +396,7 @@ git push origin feature/AmazingFeature
 
 ### Get Help
 
-[![Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/cctview)
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/cctview)
-[![Stack Overflow](https://img.shields.io/badge/-Stackoverflow-FE7A16?style=for-the-badge&logo=stack-overflow&logoColor=white)](https://stackoverflow.com/questions/tagged/cctview)
-
-**Email:** support@cctview.com  
+**Email:** shivoshita@gmail.com  
 **Issues:** [GitHub Issues](https://github.com/shivoshita/video-analysis-dashboard/issues)  
 **Discussions:** [GitHub Discussions](https://github.com/shivoshita/video-analysis-dashboard/discussions)
 
@@ -434,8 +428,6 @@ Free to use • Open source • Community driven
 - **OpenCV Team** - Computer vision excellence
 - **TensorFlow/PyTorch** - ML framework power  
 - **Open Source Community** - Inspiration & support
-- **Beta Testers** - Valuable feedback
-- **Security Researchers** - Keeping systems safe
 
 </div>
 
